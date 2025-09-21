@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>RPG Quest Board — PWA + Supabase Sync</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#3b2908">
+  <style>
+    :root{
+      --bg1:#7a4a0c; --bg2:#3b2908; --ink:#f9f4e8; --border:rgba(248,235,197,.25);
+      --paper:#f4e4c1; --paper-ink:#2f2616; --searchbg: rgba(255,255,255,.06);
+    }
+    *{box-sizing:border-box}
+    body{margin:0;background:linear-gradient(135deg,var(--bg1),var(--bg2));color:var(--ink);
+         font:14px/1.55 system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,'Noto Sans JP',sans-serif}
+    header{position:sticky;top:0;background:rgba(35,26,9,.75);backdrop-filter:blur(6px);
+           border-bottom:1px solid var(--border);z-index:20}
+    .wrap{max-width:960px;margin:0 auto;padding:10px 14px;display:flex;align-items:center;gap:10px}
+    h1{font-size:18px;margin:0;font-weight:800;letter-spacing:.3px}
+    .btn{appearance:none;border:1px solid var(--border);background:var(--searchbg);color:var(--ink);
+         padding:8px 12px;border-radius:10px;cursor:pointer}
+    .btn:hover{background:rgba(255,255,255,.12)}
+    main{max-width:960px;margin:0 auto;padding:16px}
+    .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+    .col{display:flex;flex-direction:column;gap:8px}
+    input,textarea{width:100%;padding:10px;border-radius:10px;border:1px solid var(--border);background:var(--searchbg);color:var(--ink)}
+    .list{display:grid;grid-template-columns:1fr;gap:12px}
+    @media(min-width:640px){.list{grid-template-columns:1fr 1fr}}
+    .card{background:rgba(0,0,0,.18);border:1px solid var(--border);border-radius:16px;overflow:hidden}
+    .card h2{margin:0;padding:12px 14px;border-bottom:1px solid var(--border);font-size:15px}
+    .content{padding:12px 14px}
+    .quest{background:var(--paper);color:var(--paper-ink);border:1px solid #e5d7ae;border-radius:12px;padding:10px}
+    .footer{display:flex;gap:8px;align-items:center;margin-top:8px}
+    .sp{flex:1}
+    .muted{opacity:.8}
+    .badge{display:inline-block;border:1px solid var(--border);background:var(--searchbg);padding:2px 8px;border-radius:999px;font-size:12px}
+  </style>
+
+  <script>
+    // Register Service Worker
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./service-worker.js').catch(console.error);
+      });
+    }
+  </script>
+</head>
+<body>
+  <header>
+    <div class="wrap">
+      <h1>RPG Quest Board</h1>
+      <div style="flex:1"></div>
+      <button class="btn" id="exportBtn">エクスポート</button>
+      <input type="file" id="importFile" style="display:none" accept="application/json">
+      <button class="btn" id="importBtn">インポート</button>
+      <button class="btn" id="resetBtn">初期化</button>
+    </div>
+  </header>
+
+  <main>
+    <div class="card">
+      <h2>冒険者プロフィール</h2>
+      <div class="content">
+        <div class="row">
+          <span class="badge">LV <b id="lv">1</b></span>
+          <span class="muted">EXP <b id="expProg">0</b>/<b id="expNeed">100</b></span>
+          <span class="badge">💰 <b id="gold">0</b> G</span>
+        </div>
+        <div class="row" style="margin-top:8px">
+          <div class="muted">クラウド同期: <span id="syncState">待機中</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:12px">
+      <h2>クエスト掲示板</h2>
+      <div class="content">
+        <div class="row">
+          <input id="newTitle" placeholder="新しいクエスト（例：本を30分読む）">
+          <button class="btn" id="addBtn">追加</button>
+        </div>
+        <div class="list" id="list" style="margin-top:10px"></div>
+      </div>
+    </div>
+  </main>
+
+  <script type="module">
+    import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+    // ========= 設定（ここを書き換えてください） =========
+    const SUPABASE_URL = "https://jjyjcxswkcqtcxenytam.supabase.co"; // ←置き換え
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqeWpjeHN3a2NxdGN4ZW55dGFtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg0MzYxMDEsImV4cCI6MjA3NDAxMjEwMX0.Hyp3MGsO8Aouyvctdx3QnQITPlqcLxkdeooBPhFYGEw";               // ←置き換え
+    // 既存アプリのローカル保存キーに合わせて変更可能
+    const LS_Q = 'rpg-quest-todo-v13';
+    const LS_P = 'rpg-quest-profile-v4';
+
+    // ========= クライアント作成 =========
+    function getUserId(){
+      const key = 'rpg-user-id';
+      let id = localStorage.getItem(key);
+      if(!id){ id = (crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2)); localStorage.setItem(key,id); }
+      return id;
+    }
+    const USER_ID = getUserId();
+    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      global: { headers: { "x-user-id": USER_ID } } // 簡易識別（本番はAuth推奨）
+    });
+
+    // ========= ローカル永続化 =========
+    function loadLocal(){
+      return {
+        quests: JSON.parse(localStorage.getItem(LS_Q) || '[]'),
+        profile: JSON.parse(localStorage.getItem(LS_P) || '{"gold":0,"exp":0}'),
+        updated_at: localStorage.getItem('rpg-updated-at') || '1970-01-01T00:00:00.000Z'
+      };
+    }
+    function saveLocal(data){
+      localStorage.setItem(LS_Q, JSON.stringify(data.quests));
+      localStorage.setItem(LS_P, JSON.stringify(data.profile));
+      localStorage.setItem('rpg-updated-at', data.updated_at || new Date().toISOString());
+    }
+    function nowIso(){ return new Date().toISOString(); }
+
+    // ========= UI / 状態 =========
+    const E = {
+      lv: document.getElementById('lv'),
+      expProg: document.getElementById('expProg'),
+      expNeed: document.getElementById('expNeed'),
+      gold: document.getElementById('gold'),
+      list: document.getElementById('list'),
+      newTitle: document.getElementById('newTitle'),
+      addBtn: document.getElementById('addBtn'),
+      resetBtn: document.getElementById('resetBtn'),
+      exportBtn: document.getElementById('exportBtn'),
+      importBtn: document.getElementById('importBtn'),
+      importFile: document.getElementById('importFile'),
+      syncState: document.getElementById('syncState')
+    };
+
+    function levelFromExp(exp){ let lvl=1, need=100, left=exp; while(left>=need){ left-=need; lvl++; need+=50; } return {level:lvl,toNext:need,progress:left}; }
+
+    function render(){
+      const local = loadLocal();
+      const lvInfo = levelFromExp(local.profile.exp||0);
+      E.lv.textContent = lvInfo.level;
+      E.expProg.textContent = lvInfo.progress;
+      E.expNeed.textContent = lvInfo.toNext;
+      E.gold.textContent = local.profile.gold||0;
+      E.list.innerHTML = (local.quests||[]).map(q => `
+        <div class="quest">
+          <div><b>${q.title}</b></div>
+          <div class="footer">
+            <button class="btn" data-act="done" data-id="${q.id}">達成</button>
+            <div class="sp"></div>
+            <span class="muted">${q.exp||50} EXP / ${q.gold||20} G</span>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function uid(){ return Math.random().toString(36).slice(2) + Date.now().toString(36); }
+
+    function saveLocalOnly(){
+      const local = loadLocal();
+      localStorage.setItem(LS_Q, JSON.stringify(local.quests));
+      localStorage.setItem(LS_P, JSON.stringify(local.profile));
+    }
+
+    // ========= Supabase Push/Pull =========
+    async function pullFromCloud(){
+      E.syncState.textContent = 'クラウド取得中…';
+      const { data, error } = await supabase.from('profiles').select('*').eq('user_id', USER_ID).maybeSingle();
+      if(error){ console.warn('pull error', error); E.syncState.textContent = 'オフライン'; return; }
+      if(!data){ E.syncState.textContent = 'クラウド未作成'; return; }
+      const local = loadLocal();
+      if(!local.updated_at || new Date(data.updated_at) > new Date(local.updated_at)){
+        saveLocal({ quests: data.payload.quests||[], profile: data.payload.profile||{}, updated_at: data.updated_at });
+        render();
+      }
+      E.syncState.textContent = '同期済み（pull）';
+    }
+
+    async function pushToCloud(){
+      const local = loadLocal();
+      const payload = { quests: local.quests, profile: local.profile };
+      const { error } = await supabase.from('profiles').upsert({ user_id: USER_ID, payload, updated_at: nowIso() });
+      if(error){ console.warn('push error', error); E.syncState.textContent = 'オフライン'; return; }
+      E.syncState.textContent = '同期済み（push）';
+    }
+
+    // ========= 初期化SEED =========
+    function ensureSeed(){
+      const local = loadLocal();
+      if((local.quests||[]).length===0){
+        local.quests = [
+          { id: uid(), title:'本を30分読む', exp:50, gold:20, repeatable:true, timesCompleted:0 },
+          { id: uid(), title:'10分ストレッチ', exp:30, gold:10, repeatable:true, timesCompleted:0 }
+        ];
+        local.profile = { gold:0, exp:0 };
+        local.updated_at = nowIso();
+        saveLocal(local);
+      }
+    }
+
+    // ========= イベント =========
+    document.addEventListener('click', (e)=>{
+      const t = e.target;
+      const act = t.getAttribute('data-act');
+      const id = t.getAttribute('data-id');
+      if(act==='done' && id){
+        const local = loadLocal();
+        const q = local.quests.find(x=> x.id===id);
+        if(!q) return;
+        q.timesCompleted = (q.timesCompleted||0)+1;
+        local.profile.gold = (local.profile.gold||0) + (q.gold||0);
+        local.profile.exp = (local.profile.exp||0) + (q.exp||0);
+        local.updated_at = nowIso();
+        saveLocal(local);
+        render();
+        pushToCloud();
+      }
+    });
+
+    E.addBtn.addEventListener('click', ()=>{
+      const title = (E.newTitle.value||'').trim();
+      if(!title) return;
+      const local = loadLocal();
+      local.quests.unshift({ id: uid(), title, exp:50, gold:20, repeatable:true, timesCompleted:0 });
+      local.updated_at = nowIso();
+      saveLocal(local);
+      E.newTitle.value = '';
+      render();
+      pushToCloud();
+    });
+
+    E.resetBtn.addEventListener('click', ()=>{
+      if(!confirm('データを初期化しますか？')) return;
+      localStorage.removeItem(LS_Q);
+      localStorage.removeItem(LS_P);
+      localStorage.removeItem('rpg-updated-at');
+      ensureSeed();
+      render();
+      pushToCloud();
+    });
+
+    // Export / Import
+    E.exportBtn.addEventListener('click', ()=>{
+      const local = loadLocal();
+      const blob = new Blob([JSON.stringify(local, null, 2)], {type:'application/json'});
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'quest-board-export.json';
+      a.click();
+      URL.revokeObjectURL(a.href);
+    });
+    E.importBtn.addEventListener('click', ()=> E.importFile.click());
+    E.importFile.addEventListener('change', async ()=>{
+      const file = E.importFile.files[0];
+      if(!file) return;
+      const text = await file.text();
+      const obj = JSON.parse(text);
+      saveLocal({ quests: obj.quests||[], profile: obj.profile||{}, updated_at: obj.updated_at||nowIso() });
+      render();
+      pushToCloud();
+      E.importFile.value='';
+    });
+
+    // ========= 起動 =========
+    ensureSeed();
+    render();
+    // 起動時にpull→表示更新
+    pullFromCloud();
+  </script>
+</body>
+</html>
