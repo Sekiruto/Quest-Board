@@ -108,7 +108,12 @@
       });
     }
   </script>
-
+  
+<style>
+  #syncFloat{ z-index:2147483647 !important; pointer-events:auto !important; }
+  #syncFloat *{ pointer-events:auto !important; }
+</style>
+  
 </head>
 <body>
 <header>
@@ -890,6 +895,36 @@
 })();
 </script>
 <!-- ==== /Auto Push Patch ==== -->
-
+<script>
+  (function(){
+    const bar = document.getElementById('syncFloat');
+    if(!bar) return;
+    // 上位のオーバーレイに奪われない
+    ['pointerdown','pointerup','click','touchstart','touchend'].forEach(ev=>{
+      bar.addEventListener(ev, e=>{ e.stopPropagation(); }, {capture:true});
+    });
+    // ボタンを type=button に
+    ['sbSignIn','sbSignOut','sbManualPull','sbManualPush'].forEach(id=>{
+      const el = document.getElementById(id);
+      if(el && !el.getAttribute('type')) el.setAttribute('type','button');
+    });
+    // デバッグ用の手動PULL/PUSHが無ければ作る
+    function mk(label,id){
+      const b=document.createElement('button');
+      b.textContent=label; b.id=id; b.type='button';
+      b.style.cssText='margin-left:6px;appearance:none;border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.08);color:#fff;border-radius:8px;padding:6px 8px;cursor:pointer';
+      return b;
+    }
+    if(!document.getElementById('sbManualPull')){
+      const p=mk('手動PULL','sbManualPull'); p.onclick=()=>window.sbPull&&window.sbPull(true); bar.appendChild(p);
+    }
+    if(!document.getElementById('sbManualPush')){
+      const p=mk('手動PUSH','sbManualPush'); p.onclick=()=>window.sbPush&&window.sbPush(); bar.appendChild(p);
+    }
+    // アクセシビリティ
+    bar.setAttribute('role','toolbar'); bar.setAttribute('tabindex','0');
+  })();
+</script>
+  
 </body>
 </html>
