@@ -113,14 +113,15 @@
     import { getFirestore, doc, setDoc, getDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore.js";
 
     // TODO: あなたの firebaseConfig をここに貼り付けてください
-    const firebaseConfig = {
-  apiKey: "AIzaSyDw8IRU5sjphX0gowwJ2oKeOgtqaxe5hfY",
-  authDomain: "quest-board-d5ed7.firebaseapp.com", // ★ここも正しい値に★
-  projectId: "quest-board-d5ed7",                  // ★ここも正しい値に★
-  storageBucket: "quest-board-d5ed7.appspot.com",  // ★ここも正しい値に★
-  messagingSenderId: "307394427906",              // ★ここも正しい値に★
-  appId: "1:307394427906:web:ab33924af2806a1caa7b1b", // ★ここも正しい値に★
-    };
+  const firebaseConfig = {
+    apiKey: "AIzaSyDw8IRU5sjphX0gowwJ2oKeOgtqaxe5hfY",
+    authDomain: "quest-board-d5ed7.firebaseapp.com",
+    projectId: "quest-board-d5ed7",
+    storageBucket: "quest-board-d5ed7.firebasestorage.app",
+    messagingSenderId: "307394427906",
+    appId: "1:307394427906:web:2ff0bc69fcd95291aa7b1b",
+    measurementId: "G-9VHW6CHXV7"
+  };
 
     const app  = initializeApp(firebaseConfig);
     const auth = getAuth(app);
