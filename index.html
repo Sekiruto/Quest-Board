@@ -1,57 +1,76 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>RPG Quest Board — Synced</title>
-  <meta name="theme-color" content="#3b2908"/>
+  <meta charset="UTF-8">
+  <title>RPG Quest Board</title>
+  <link rel="manifest" href="manifest.json">
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./service-worker.js').catch(()=>{});
+      });
+    }
+  </script>
+  <style>
+    body { font-family: sans-serif; background:#2b1b08; color:#fff; margin:0; padding:0; }
+    #syncFloat { position: fixed; bottom: 10px; right: 10px; background:#333; padding:10px; border-radius:8px; font-size:14px; }
+    button { margin:2px; padding:4px 8px; }
+  </style>
 </head>
 <body>
-  <div id="app">RPG Quest Board (同期機能つき 完成版)</div>
+  <h1>RPG Quest Board</h1>
+  <p>ここにUI（クエストボードやステータスなど）が入ります。</p>
 
-  <!-- Supabase同期フローティングUI -->
-  <div id="syncFloat" style="position:fixed;right:12px;bottom:12px;background:#0008;color:#fff;padding:8px;border-radius:8px;z-index:9999;">
-    <span id="syncText">未ログイン</span>
-    <button id="sbSignIn">サインイン</button>
-    <button id="sbSignOut" style="display:none">サインアウト</button>
+  <!-- ▼ 同期UI -->
+  <div id="syncFloat">
+    <div id="authStatus">未ログイン</div>
+    <button id="signIn">サインイン</button>
+    <button id="signOut" style="display:none;">サインアウト</button>
   </div>
+  <!-- ▲ 同期UI -->
 
+  <!-- ▼ Supabase 同期スクリプト -->
   <script type="module">
     import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
     const SUPABASE_URL = "https://jjyjcxswkcqtcxenytam.supabase.co";
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqeWpjeHN3a2NxdGN4ZW55dGFtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg0MzYxMDEsImV4cCI6MjA3NDAxMjEwMX0.Hyp3MGsO8Aouyvctdx3QnQITPlqcLxkdeooBPhFYGEw";
-    const REDIRECT_TO = "https://sekiruto.github.io/Quest-Board/";
+    const REDIRECT_TO = window.location.origin;
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const authStatus = document.getElementById("authStatus");
+    const signInBtn = document.getElementById("signIn");
+    const signOutBtn = document.getElementById("signOut");
 
-    function setState(msg){ document.getElementById("syncText").textContent = msg; }
-
-    document.getElementById("sbSignIn").onclick = async ()=>{
-      const email = prompt("メールアドレスを入力してください");
-      if(!email) return;
-      const { error } = await supabase.auth.signInWithOtp({ email, options:{ emailRedirectTo: REDIRECT_TO }});
-      if(error) alert(error.message); else alert("メールを確認してください");
-    };
-    document.getElementById("sbSignOut").onclick = async ()=>{
-      await supabase.auth.signOut();
-      setState("未ログイン");
-      document.getElementById("sbSignIn").style.display="inline-block";
-      document.getElementById("sbSignOut").style.display="none";
-    };
-
-    supabase.auth.onAuthStateChange((_e,session)=>{
-      const user = session?.user;
-      if(user){
-        setState("ログイン中: "+(user.email||user.id));
-        document.getElementById("sbSignIn").style.display="none";
-        document.getElementById("sbSignOut").style.display="inline-block";
+    async function updateAuthStatus() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        authStatus.textContent = "ログイン中: " + user.email;
+        signInBtn.style.display = "none";
+        signOutBtn.style.display = "inline-block";
       } else {
-        setState("未ログイン");
-        document.getElementById("sbSignIn").style.display="inline-block";
-        document.getElementById("sbSignOut").style.display="none";
+        authStatus.textContent = "未ログイン";
+        signInBtn.style.display = "inline-block";
+        signOutBtn.style.display = "none";
+      }
+    }
+
+    signInBtn.addEventListener("click", async () => {
+      const email = prompt("メールアドレスを入力してください:");
+      if (email) {
+        await supabase.auth.signInWithOtp({ email, options: { emailRedirectTo: REDIRECT_TO } });
+        alert("認証メールを送信しました。");
       }
     });
+
+    signOutBtn.addEventListener("click", async () => {
+      await supabase.auth.signOut();
+      updateAuthStatus();
+    });
+
+    supabase.auth.onAuthStateChange(() => updateAuthStatus());
+    updateAuthStatus();
   </script>
+  <!-- ▲ Supabase 同期スクリプト -->
 </body>
 </html>
