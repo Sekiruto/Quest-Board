@@ -109,6 +109,13 @@
     }
   </script>
   
+
+<style>
+  /* Clickability hardening for sync toolbar */
+  #syncFloat{ z-index:2147483647 !important; pointer-events:auto !important; }
+  #syncFloat *{ pointer-events:auto !important; }
+</style>
+
 </head>
 <body>
 <header>
@@ -890,5 +897,25 @@
 })();
 </script>
 <!-- ==== /Auto Push Patch ==== -->
+
+<!-- Click guard for sync toolbar -->
+<script>
+  (function(){
+    const bar = document.getElementById('syncFloat');
+    if(!bar) return;
+    // Prevent parent overlays from swallowing events
+    ['pointerdown','pointerup','click','touchstart','touchend'].forEach(ev=>{
+      bar.addEventListener(ev, e=>{ e.stopPropagation(); }, {capture:true});
+    });
+    // Ensure toolbar buttons are type="button"
+    ['sbSignIn','sbSignOut','sbManualPull','sbManualPush'].forEach(id=>{
+      const el = document.getElementById(id);
+      if(el && !el.getAttribute('type')) el.setAttribute('type','button');
+    });
+    // Accessibility
+    bar.setAttribute('role','toolbar'); bar.setAttribute('tabindex','0');
+  })();
+</script>
+
 </body>
 </html>
