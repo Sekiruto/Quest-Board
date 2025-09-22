@@ -3,9 +3,9 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>RPG Quest Board — ver.08 + Supabase Sync</title>
+  <title>RPG Quest Board — ver.08 + Sync + Layout Upd</title>
 
-  <!-- PWA hooks (optional, keep as-is if you already use manifest/sw) -->
+  <!-- PWA (optional) -->
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#3b2908">
   <script>
@@ -36,6 +36,7 @@
     .btn.danger{background:#9a1f1f;border-color:#7f1717}
     .btn.danger:hover{background:#b32626}
     .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+    .col{display:flex;flex-direction:column;gap:12px}
     .sp{flex:1}
     main{max-width:1120px;margin:0 auto;padding:16px}
     .grid{display:grid;grid-template-columns:1fr;gap:16px}
@@ -59,21 +60,22 @@
     .search:before{content:'🔎';position:absolute;left:8px;top:50%;transform:translateY(-50%);opacity:.7}
     .list{display:grid;grid-template-columns:1fr;gap:12px}
     @media(min-width:620px){.list{grid-template-columns:1fr 1fr}}
-    .quest{background:var(--paper);color:var(--paper-ink);border:1px solid #e5d7ae;border-radius:12px;padding:10px;position:relative;box-shadow:0 8px 18px rgba(0,0,0,.18)}
+    .quest{background:var(--paper);color:var(--paper-ink);border:1px solid #e5d7ae;border-radius:12px;padding:10px 10px 44px;position:relative;box-shadow:0 8px 18px rgba(0,0,0,.18)}
     .quest h3{margin:0 0 6px 0;font-size:15px;color:#2a1f0e}
     .desc{color:#443418}
     .unlocks{color:#5a4828;font-size:13px;margin-top:4px}
     .box{background:#dbcaa6;border:1px solid var(--border);border-radius:10px;padding:6px 10px;display:inline-flex;align-items:center;gap:6px}
     .quest .lock{position:absolute;top:8px;right:8px;background:var(--searchbg);border:1px solid var(--border);border-radius:10px;padding:4px 8px;font-size:12px;display:none}
     .quest.edit .lock{display:inline-block}
-    .quest .editBar{position:absolute;left:8px;bottom:8px;display:none;gap:8px}
+    .quest .editBar{position:absolute;left:auto;right:10px;bottom:8px;display:none;gap:8px}
     .quest.edit .editBar{display:flex}
     .quest .delBtn{position:absolute;right:8px;bottom:8px;display:none}
-    .quest.edit .delBtn{display:inline-block}
+    .quest.edit .delBtn{display:none} /* 完了へ削除に合わせて削除ボタンも非表示のまま */
+    .quest .fixedActions{position:absolute;left:10px;bottom:8px;display:flex;gap:8px;align-items:center}
     .drawer{position:fixed;inset:0;display:none;z-index:50}
     .drawer.open{display:block}
     .drawer .panel{position:absolute;inset:0 35% 0 0;background:#1c1407;border-right:1px solid var(--border);overflow:auto}
-    @media(max-width:980px){.drawer .panel{inset:0;max-width:460px}}
+    @media(max-width:980px){.drawer .panel{inset:0;max-width:480px}}
     .drawer .shade{position:absolute;inset:0;background:rgba(0,0,0,.35)}
 
     /* Sync panel */
@@ -86,6 +88,7 @@
     #syncFloat button:hover{background:rgba(255,255,255,.12)}
     #syncFloat .dot{width:8px;height:8px;border-radius:50%;background:#aaa}
     #syncFloat .dot.on{background:#54d38a}
+    .pill{display:inline-flex;gap:6px;align-items:center;padding:4px 10px;border-radius:999px;background:var(--searchbg);border:1px solid var(--border)}
   </style>
 </head>
 <body>
@@ -110,13 +113,15 @@
       </div>
       <div style="padding:12px" class="col">
         <div class="card">
-          <h2>クエスト追加</h2>
+          <h2 id="formTitle">クエスト追加</h2>
           <div class="content col">
             <input id="qTitle" placeholder="タイトル（例: 本を30分読む）">
             <textarea id="qDesc" placeholder="説明（任意）"></textarea>
             <div class="row">
-              <input type="number" id="qExp" placeholder="XP" value="50" style="max-width:120px">
+              <span class="pill">獲得G</span>
               <input type="number" id="qGold" placeholder="Gold" value="20" style="max-width:120px">
+              <span class="pill">獲得XP</span>
+              <input type="number" id="qExp" placeholder="XP" value="50" style="max-width:120px">
               <select id="qDiff" style="max-width:140px">
                 <option value="EASY">EASY</option>
                 <option value="NORMAL" selected>NORMAL</option>
@@ -136,6 +141,7 @@
             </div>
             <div class="row">
               <button id="addQuestBtn" class="btn">追加</button>
+              <button id="cancelEditBtn" class="btn" style="display:none">キャンセル</button>
             </div>
           </div>
         </div>
@@ -165,6 +171,13 @@
             </div>
           </div>
         </div>
+
+        <div class="card">
+          <h2>職業一覧</h2>
+          <div class="content" id="jobsBoard">
+            <div class="muted">未取得</div>
+          </div>
+        </div>
       </div>
 
       <div class="col">
@@ -190,13 +203,36 @@
     <section id="pageStatus" style="display:none;margin-top:12px">
       <div class="card">
         <h2>ステータス</h2>
-        <div class="content">
+        <div class="content col">
           <div class="row" style="margin-top:8px">
             <span class="badge b-exptext">LV <b id="lv2">1</b></span>
             <span class="muted">EXP <b id="expProg2">0</b>/<b id="expNeed2">100</b></span>
             <span class="badge b-exptext">💰 <b id="gold2">0</b> Gold</span>
           </div>
           <div class="progress" style="margin-top:4px"><i id="expBar2" style="width:0%"></i></div>
+
+          <div class="row" style="margin-top:10px;flex-wrap:wrap">
+            <span class="pill">STR <b id="statSTR">0</b></span>
+            <span class="pill">DEX <b id="statDEX">0</b></span>
+            <span class="pill">INT <b id="statINT">0</b></span>
+            <span class="pill">VIT <b id="statVIT">0</b></span>
+            <span class="pill">LUK <b id="statLUK">0</b></span>
+          </div>
+
+          <div class="col" style="margin-top:10px">
+            <h3 style="margin:0">達成済みクエスト</h3>
+            <div id="clearedList" class="muted">まだありません</div>
+          </div>
+
+          <div class="col">
+            <h3 style="margin:0">獲得スキル</h3>
+            <div id="skillsList" class="muted">まだありません</div>
+          </div>
+
+          <div class="col">
+            <h3 style="margin:0">職業</h3>
+            <div id="jobsList" class="muted">未取得</div>
+          </div>
         </div>
       </div>
     </section>
@@ -224,7 +260,8 @@
     const LS_P='rpg-quest-profile-v4';
     const LS_UPDATED='rpg-updated-at';
 
-    /* ===== Default quests (your screenshot 6 items) ===== */
+    /* ===== Default quests ===== */
+    function uid(){ return (crypto.randomUUID? crypto.randomUUID(): (Math.random().toString(36).slice(2)+Date.now().toString(36))); }
     const defaultQuests = [
       { id: uid(), title:"【読書[ビギナー]】知識の芽を育てよ", difficulty:"EASY", gold:20, exp:30, description:"25分読書する。", timesCompleted:0, archived:false, locked:false, rule:{type:"NONE"}, hideCondition:false },
       { id: uid(), title:"【読書[ノービス]】小さな書庫を開け", difficulty:"EASY", gold:30, exp:40, description:"読書を36分する\n解放条件: 7回でステータス+1", timesCompleted:0, archived:false, locked:false, rule:{type:"STAT_UP", target:"ステータス+1", count:7}, hideCondition:false },
@@ -236,14 +273,14 @@
 
     /* ===== State / Utils ===== */
     let editMode=false, filter='ACTIVE', searchText='';
+    let editingId = null; // ← 編集対象ID（追加と同じフォームで更新）
     const $ = (id)=>document.getElementById(id);
     function nowIso(){ return new Date().toISOString(); }
-    function uid(){ return Math.random().toString(36).slice(2)+Date.now().toString(36); }
     function levelFromExp(exp){ let lvl=1, need=100, left=exp; while(left>=need){ left-=need; lvl++; need+=50; } return {level:lvl,toNext:need,progress:left}; }
     function loadLocal(){
       return {
         quests: JSON.parse(localStorage.getItem(LS_Q)||'[]'),
-        profile: JSON.parse(localStorage.getItem(LS_P)||'{"gold":0,"exp":0}'),
+        profile: JSON.parse(localStorage.getItem(LS_P)||'{"gold":0,"exp":0,"stats":{"STR":0,"DEX":0,"INT":0,"VIT":0,"LUK":0},"skills":[],"jobs":[]}'),
         updated_at: localStorage.getItem(LS_UPDATED) || null
       };
     }
@@ -251,9 +288,10 @@
       localStorage.setItem(LS_Q, JSON.stringify(data.quests));
       localStorage.setItem(LS_P, JSON.stringify(data.profile));
       localStorage.setItem(LS_UPDATED, data.updated_at || nowIso());
+      window.dispatchEvent(new Event('local-updated'));
     }
 
-    /* ===== Rendering (ver.08風の最低限) ===== */
+    /* ===== Rendering ===== */
     function renderProfile(){
       const local = loadLocal();
       const lv = levelFromExp(local.profile.exp||0);
@@ -268,6 +306,24 @@
       $('expNeed2').textContent = lv.toNext;
       $('expBar2').style.width = (lv.progress/lv.toNext*100)+'%';
       $('gold2').textContent = local.profile.gold||0;
+
+      const st = local.profile.stats||{STR:0,DEX:0,INT:0,VIT:0,LUK:0};
+      $('statSTR').textContent = st.STR||0;
+      $('statDEX').textContent = st.DEX||0;
+      $('statINT').textContent = st.INT||0;
+      $('statVIT').textContent = st.VIT||0;
+      $('statLUK').textContent = st.LUK||0;
+
+      // jobs panel (left)
+      const jobs = local.profile.jobs||[];
+      $('jobsBoard').innerHTML = jobs.length? jobs.map(j=>`<span class="pill">${j}</span>`).join(' ') : '<div class="muted">未取得</div>';
+
+      // status page lists
+      const cleared = (local.quests||[]).filter(q=>q.timesCompleted>0).slice(0,30).map(q=>`<li>${q.title} ×${q.timesCompleted}</li>`).join('');
+      $('clearedList').innerHTML = cleared || 'まだありません';
+      const skills = local.profile.skills||[];
+      $('skillsList').innerHTML = skills.length? skills.map(s=>`<span class="pill">${s}</span>`).join(' ') : 'まだありません';
+      $('jobsList').innerHTML = jobs.length? jobs.map(s=>`<span class="pill">${s}</span>`).join(' ') : '未取得';
     }
     function questMatches(q){
       if(filter==='ACTIVE' && q.archived) return false;
@@ -293,19 +349,16 @@
         <h3><span class="box">${q.title}</span></h3>
         ${q.description?`<div class="desc">${q.description.replace(/\\n/g,'<br>')}</div>`:''}
         ${ruleText(q)?`<div class="unlocks">${ruleText(q)}</div>`:''}
-        <div class="row" style="margin-top:8px;align-items:center">
+        <div class="row" style="margin-top:8px;align-items:center;justify-content:flex-end;gap:8px">
+          <span class="box">${q.difficulty||'NORMAL'}</span>
+          <span class="box">💰 ${q.gold||0} G</span>
+          <span class="box">⭐ ${q.exp||0} XP</span>
+          <span class="box">反復 ×${q.timesCompleted||0}</span>
+        </div>
+        <div class="fixedActions">
           <span class="box"><button class="btn small" data-act="done">達成報告</button></span>
-          <div class="sp"></div>
-          <span class="muted">${q.difficulty||'NORMAL'}</span>
-          <span class="muted">🔥 ${q.gold||0}G</span>
-          <span class="muted">${q.exp||0}EXP</span>
-          <span class="muted">反復 ×${q.timesCompleted||0}</span>
+          ${editMode?'<button class="btn small" data-act="edit">編集へ</button>':''}
         </div>
-        <div class="editBar">
-          <button class="btn small" data-act="edit">編集</button>
-          <button class="btn small" data-act="archive">${q.archived?'再開':'完了へ'}</button>
-        </div>
-        <button class="btn small danger delBtn" data-act="delete">削除</button>
       </div>`;
     }
     function renderBoard(){
@@ -315,7 +368,7 @@
     }
     function render(){ renderProfile(); renderBoard(); }
 
-    /* ===== Save wrapper (ver.08 の save() をクラウド連携に) ===== */
+    /* ===== Save wrapper (ver.08 save() + cloud) ===== */
     (function wrapSave(){
       const orig = window.save;
       window.save = function(){
@@ -333,11 +386,9 @@
       const { data, error } = await supabase.from('profiles').select('*').eq('user_id', user.id).maybeSingle();
       if(error){ console.warn(error); return null; }
       if(!data){
-        // 初回：デフォルトクエストで作成（クラウド優先）
-        const payload = { quests: defaultQuests, profile:{ gold:0, exp:0 } };
+        const payload = { quests: defaultQuests, profile:{ gold:0, exp:0, stats:{STR:0,DEX:0,INT:0,VIT:0,LUK:0}, skills:[], jobs:[] } };
         const { error:insErr } = await supabase.from('profiles').insert({ user_id:user.id, payload, updated_at: nowIso() });
         if(insErr) console.warn(insErr);
-        // ローカルも同じにする
         saveLocal({ quests: payload.quests, profile: payload.profile, updated_at: nowIso() });
         return payload;
       }
@@ -358,7 +409,7 @@
       const cloudIsNewer = !local.updated_at || forceCloud || new Date(cloudUpdated) > new Date(local.updated_at||'1970-01-01T00:00:00.000Z');
 
       if(cloudIsNewer){
-        saveLocal({ quests: payload.quests||[], profile: payload.profile||{gold:0,exp:0}, updated_at: cloudUpdated });
+        saveLocal({ quests: payload.quests||[], profile: payload.profile||{gold:0,exp:0,stats:{},skills:[],jobs:[]}, updated_at: cloudUpdated });
         render();
         setState('同期済み（pull）', true);
       }else{
@@ -399,8 +450,16 @@
     $('adminBtn').addEventListener('click', ()=> drawer.classList.add('open'));
     drawer.addEventListener('click', (e)=>{ if(e.target.matches('[data-close]')) drawer.classList.remove('open'); });
 
-    // Add quest
-    $('addQuestBtn').addEventListener('click', ()=>{
+    // Add / Save quest (also edit)
+    const addBtn = $('addQuestBtn');
+    const cancelBtn = $('cancelEditBtn');
+    function setFormMode(mode){
+      if(mode==='edit'){ $('formTitle').textContent='クエスト編集'; addBtn.textContent='保存'; cancelBtn.style.display='inline-block'; }
+      else{ $('formTitle').textContent='クエスト追加'; addBtn.textContent='追加'; cancelBtn.style.display='none'; editingId=null; }
+    }
+    cancelBtn.addEventListener('click', ()=>{ setFormMode('add'); drawer.classList.remove('open'); });
+
+    addBtn.addEventListener('click', ()=>{
       const title = $('qTitle').value.trim(); if(!title) return;
       const desc = $('qDesc').value.trim();
       const exp = parseInt(($('qExp').value||'0'),10);
@@ -412,18 +471,26 @@
       const hideCondition = $('qHideCond').checked;
 
       const local = loadLocal();
-      local.quests.unshift({
-        id: uid(), title, description:desc, exp, gold, difficulty:diff,
-        timesCompleted:0, archived:false, locked:false,
-        rule:{type, target, count}, hideCondition
-      });
+      if(editingId){
+        const q = local.quests.find(x=>x.id===editingId); if(q){
+          q.title=title; q.description=desc; q.exp=exp; q.gold=gold; q.difficulty=diff;
+          q.rule={type, target, count}; q.hideCondition=hideCondition;
+        }
+      }else{
+        local.quests.unshift({
+          id: uid(), title, description:desc, exp, gold, difficulty:diff,
+          timesCompleted:0, archived:false, locked:false,
+          rule:{type, target, count}, hideCondition
+        });
+      }
       saveLocal({ quests: local.quests, profile: local.profile, updated_at: nowIso() });
       render();
       pushToCloudAuth();
 
-      // clear
+      // clear + exit edit
       $('qTitle').value=''; $('qDesc').value=''; $('qExp').value='50'; $('qGold').value='20';
       $('qRuleTarget').value=''; $('qRuleCount').value='1'; $('qHideCond').checked=false;
+      setFormMode('add'); drawer.classList.remove('open');
     });
 
     // Edit mode toggle
@@ -450,17 +517,19 @@
       }
       if(act==='edit' && editMode){
         if(q.locked){ alert('ロック中のため編集できません'); return; }
-        const t = prompt('タイトル', q.title); if(t===null) return;
-        const d = prompt('説明', q.description||''); if(d===null) return;
-        q.title = t; q.description = d;
-      }
-      if(act==='archive' && editMode){
-        if(q.locked){ alert('ロック中のため変更できません'); return; }
-        q.archived = !q.archived;
-      }
-      if(act==='delete' && editMode){
-        if(q.locked){ alert('ロック中のため削除できません'); return; }
-        local.quests = local.quests.filter(x=> x.id!==id);
+        // フォームに流し込み
+        $('qTitle').value = q.title;
+        $('qDesc').value = q.description||'';
+        $('qExp').value = q.exp||0;
+        $('qGold').value = q.gold||0;
+        $('qDiff').value = q.difficulty||'NORMAL';
+        $('qRuleType').value = (q.rule&&q.rule.type)||'NONE';
+        $('qRuleTarget').value = (q.rule&&q.rule.target)||'';
+        $('qRuleCount').value = (q.rule&&q.rule.count)||1;
+        $('qHideCond').checked = !!q.hideCondition;
+        editingId = q.id;
+        setFormMode('edit');
+        drawer.classList.add('open');
       }
       if(act==='toggleLock' && editMode){
         q.locked = !q.locked;
@@ -474,7 +543,7 @@
     // Reset
     $('resetBtn').addEventListener('click', ()=>{
       if(!confirm('初期化しますか？（ローカル＆クラウド）')) return;
-      saveLocal({ quests: [], profile:{gold:0,exp:0}, updated_at: nowIso() });
+      saveLocal({ quests: [], profile:{gold:0,exp:0,stats:{STR:0,DEX:0,INT:0,VIT:0,LUK:0},skills:[],jobs:[]}, updated_at: nowIso() });
       render();
       pushToCloudAuth();
     });
@@ -493,7 +562,7 @@
       $('sbSignOut').style.display = user ? 'inline-block' : 'none';
       setState(user ? `ログイン中: ${user.email||user.id}` : '未ログイン', !!user);
       if(user){
-        await pullFromCloudAuth(true); // ログイン直後はクラウド優先
+        await pullFromCloudAuth(true);
       }
     });
 
@@ -501,7 +570,14 @@
     (function seedIfEmpty(){
       const local = loadLocal();
       if(!local.quests || local.quests.length===0){
-        saveLocal({ quests: defaultQuests, profile:{gold:0,exp:0}, updated_at: nowIso() });
+        saveLocal({ quests: defaultQuests, profile:{gold:0,exp:0,stats:{STR:0,DEX:0,INT:0,VIT:0,LUK:0},skills:[],jobs:[]}, updated_at: nowIso() });
+      } else {
+        // 既存profileに新フィールドを補完
+        const p = local.profile||{};
+        p.stats = p.stats || {STR:0,DEX:0,INT:0,VIT:0,LUK:0};
+        p.skills = p.skills || [];
+        p.jobs = p.jobs || [];
+        saveLocal({ quests: local.quests, profile: p, updated_at: local.updated_at||nowIso() });
       }
     })();
     render();
