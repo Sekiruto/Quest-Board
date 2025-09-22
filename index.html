@@ -917,5 +917,95 @@
   })();
 </script>
 
+
+<!-- Shadow DOM sync toolbar (always-on-top, click-proof) -->
+<script>
+(function(){
+  const host = document.createElement('div');
+  host.id = 'sbShadowHost';
+  host.style.cssText = 'position:fixed;right:12px;bottom:12px;z-index:2147483647;pointer-events:none;';
+  document.body.appendChild(host);
+  const root = host.attachShadow({mode:'open'});
+
+  const style = document.createElement('style');
+  style.textContent = `
+    :host{ all: initial; }
+    .wrap{ font: 12px/1.3 system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+           color:#fff; background:rgba(0,0,0,.65);
+           border:1px solid rgba(255,255,255,.2); border-radius:12px;
+           padding:8px; display:flex; gap:6px; align-items:center;
+           pointer-events:auto;
+           backdrop-filter:saturate(1.2) blur(6px);
+         }
+    button{ appearance:none; border:1px solid rgba(255,255,255,.25);
+            background:rgba(255,255,255,.08); color:#fff;
+            border-radius:8px; padding:6px 8px; cursor:pointer; font: inherit; }
+    button:hover{ background:rgba(255,255,255,.16); }
+    .dot{ width:8px; height:8px; border-radius:50%; background:#aaa; display:inline-block; }
+    .on{ background:#54d38a !important; }
+    .label{ margin:0 4px; }
+  `;
+  root.appendChild(style);
+
+  const box = document.createElement('div');
+  box.className = 'wrap';
+  box.innerHTML = `
+    <span class="dot" id="dot"></span>
+    <span class="label" id="label">同期ツール</span>
+    <button type="button" id="pull">手動PULL</button>
+    <button type="button" id="push">手動PUSH</button>
+    <button type="button" id="signout">サインアウト</button>
+    <button type="button" id="shield">盾解除</button>
+  `;
+  root.appendChild(box);
+
+  const $ = id => root.getElementById(id);
+  const set = (txt, on)=>{ $('label').textContent = txt; const d=$('dot'); if(on) d.classList.add('on'); else d.classList.remove('on'); };
+
+  $('pull').onclick = ()=> { if (window.sbPull) { window.sbPull(true).then(()=>set('PULL完了', true)).catch(()=>set('PULL失敗',false)); } else set('sbPull未定義', false); };
+  $('push').onclick = ()=> { if (window.sbPush) { window.sbPush().then(()=>set('PUSH完了', true)).catch(()=>set('PUSH失敗',false)); } else set('sbPush未定義', false); };
+
+  const signOut = async ()=>{
+    try{
+      const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2');
+      const sb = createClient('https://jjyjcxswkcqtcxenytam.supabase.co',
+                              'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqeWpjeHN3a2NxdGN4ZW55dGFtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg0MzYxMDEsImV4cCI6MjA3NDAxMjEwMX0.Hyp3MGsO8Aouyvctdx3QnQITPlqcLxkdeooBPhFYGEw');
+      await sb.auth.signOut();
+      set('サインアウト済み', false);
+      const t = document.getElementById('syncText'); if (t) t.textContent = '未ログイン';
+      const sIn = document.getElementById('sbSignIn'); const sOut = document.getElementById('sbSignOut');
+      if (sIn) sIn.style.display='inline-block'; if (sOut) sOut.style.display='none';
+    }catch(e){ set('SignOut失敗', false); }
+  };
+  $('signout').onclick = signOut;
+
+  let shieldOff = false, prevTarget = null, prevPE = '';
+  $('shield').onclick = ()=>{
+    if(!shieldOff){
+      const rect = host.getBoundingClientRect();
+      const cx = Math.floor(rect.right - 10), cy = Math.floor(rect.bottom - 10);
+      const target = document.elementFromPoint(cx, cy);
+      if(target && !host.contains(target)){
+        prevTarget = target;
+        prevPE = target.style.pointerEvents;
+        target.style.pointerEvents = 'none';
+        shieldOff = true;
+        $('shield').textContent = '盾解除OFF';
+        set('盾解除ON', true);
+      }else{
+        set('解除対象なし', false);
+      }
+    }else{
+      if(prevTarget){ prevTarget.style.pointerEvents = prevPE; }
+      shieldOff = false;
+      $('shield').textContent = '盾解除';
+      set('盾復元', false);
+    }
+  };
+
+  set('同期ツール', Boolean(window.sbPull||window.sbPush));
+})();
+</script>
+
 </body>
 </html>
