@@ -1,5 +1,5 @@
 // Simple SW for offline shell
-const CACHE = 'questboard-v1';
+const CACHE = 'questboard-v08-sync-v1';
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c=>c.addAll(['./index.html','./manifest.json'])));
   self.skipWaiting();
