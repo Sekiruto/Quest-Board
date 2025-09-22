@@ -100,24 +100,19 @@
   .footer-row .spacer{flex:1}
 </style>
 
-  <link rel="manifest" href="manifest.json">
-  <script>
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./service-worker.js').catch(()=>{});
-      });
-    }
-  </script>
-  
-
 <style>
-  /* Clickability hardening for sync toolbar */
-  #syncFloat{ z-index:2147483647 !important; pointer-events:auto !important; }
-  #syncFloat *{ pointer-events:auto !important; }
+  /* Hide old floating auth/sync toolbar completely */
+  #syncFloat, #sbShadowHost { display:none !important; }
 </style>
 
 </head>
 <body>
+<!-- Minimal auth button (top-right), toggles SignIn/SignOut -->
+<div id="authMini" style="position:fixed;top:12px;right:12px;z-index:2147483647;background:rgba(0,0,0,.6);border:1px solid rgba(255,255,255,.2);color:#fff;border-radius:10px;padding:6px 8px;font:12px/1.2 system-ui,sans-serif">
+  <span id="authMiniLabel">未ログイン</span>
+  <button id="authMiniBtn" type="button" style="margin-left:6px;appearance:none;border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.08);color:#fff;border-radius:8px;padding:4px 8px;cursor:pointer">サインイン</button>
+</div>
+
 <header>
   <div class="wrap">
     <button id="adminBtn" class="btn" title="運営モード / 編集モード">☰</button>
@@ -743,292 +738,57 @@
 })();
 </script>
 
-<!-- === Sync Floating UI (Supabase) === -->
-<div id="syncFloat" style="position:fixed;right:12px;bottom:12px;z-index:9999;background:rgba(0,0,0,.55);backdrop-filter:blur(6px);color:#fff;border:1px solid rgba(255,255,255,.15);border-radius:12px;padding:8px 10px;display:flex;gap:8px;align-items:center;font:12px/1.3 system-ui,sans-serif">
-  <span id="syncDot" style="width:8px;height:8px;border-radius:50%;background:#aaa;display:inline-block"></span>
-  <span id="syncText">未ログイン</span>
-  <button id="sbSignIn" style="appearance:none;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.06);color:#fff;border-radius:8px;padding:6px 8px;cursor:pointer">サインイン</button>
-  <button id="sbSignOut" style="display:none;appearance:none;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.06);color:#fff;border-radius:8px;padding:6px 8px;cursor:pointer">サインアウト</button>
-</div>
 <script type="module">
-  import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-  // === Supabase settings (as provided) ===
-  const SUPABASE_URL = "https://jjyjcxswkcqtcxenytam.supabase.co";
-  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqeWpjeHN3a2NxdGN4ZW55dGFtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg0MzYxMDEsImV4cCI6MjA3NDAxMjEwMX0.Hyp3MGsO8Aouyvctdx3QnQITPlqcLxkdeooBPhFYGEw";
-  const REDIRECT_TO = "https://sekiruto.github.io/Quest-Board/"; // GitHub Pages に合わせてOK
-
-  // localStorage keys (既存に合わせる)
-  const LS_Q='rpg-quest-todo-v8', LS_P='rpg-quest-profile-v4', LS_UPDATED='rpg-updated-at';
-
-  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-    auth:{ persistSession:true, autoRefreshToken:true }
-  });
-
-  const dot=document.getElementById("syncDot"), txt=document.getElementById("syncText");
-  const setState=(m,on)=>{ txt.textContent=m; dot.style.background = on ? '#54d38a' : '#aaa'; };
-
-  const nowIso = ()=>new Date().toISOString();
-  const getLocal = ()=> ({
-    quests: JSON.parse(localStorage.getItem(LS_Q)||'[]'),
-    profile: JSON.parse(localStorage.getItem(LS_P)||'{"gold":0,"exp":0,"stats":{"hp":10,"str":1,"dex":1,"int":1,"vit":1},"skills":[],"jobs":[]}'),
-    updated_at: localStorage.getItem(LS_UPDATED) || null
-  });
-  const setLocal = (data)=>{
-    if(data.quests)  localStorage.setItem(LS_Q, JSON.stringify(data.quests));
-    if(data.profile) localStorage.setItem(LS_P, JSON.stringify(data.profile));
-    const t = data.updated_at || nowIso();
-    localStorage.setItem(LS_UPDATED, t);
-  };
-
-  async function ensureRow(user){
-    const { data, error } = await supabase.from("profiles").select("*").eq("user_id", user.id).maybeSingle();
-    if(error) return null;
-    if(!data){
-      const s = getLocal();
-      await supabase.from("profiles").insert({ user_id:user.id, payload:{quests:s.quests, profile:s.profile}, updated_at: nowIso() });
-      return { user_id:user.id, payload:{quests:s.quests, profile:s.profile}, updated_at: nowIso() };
-    }
-    return data;
+  let supabaseRef = window.supabase;
+  async function ensureClient(){
+    if (supabaseRef) return supabaseRef;
+    const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2');
+    supabaseRef = createClient('https://jjyjcxswkcqtcxenytam.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqeWpjeHN3a2NxdGN4ZW55dGFtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg0MzYxMDEsImV4cCI6MjA3NDAxMjEwMX0.Hyp3MGsO8Aouyvctdx3QnQITPlqcLxkdeooBPhFYGEw');
+    return supabaseRef;
   }
 
-  async function pull(forceCloud=true){
-    const { data:{ user } } = await supabase.auth.getUser();
-    if(!user){ setState("未ログイン", false); return; }
-    setState("クラウド取得中…", true);
-    const row = await ensureRow(user);
-    if(!row){ setState("同期エラー", false); return; }
-    const payload = row.payload || {};
-    const cloudUpdated = row.updated_at || nowIso();
-    const local = getLocal();
-    const cloudNewer = !local.updated_at || forceCloud || new Date(cloudUpdated) > new Date(local.updated_at||"1970-01-01");
-    if(cloudNewer){
-      setLocal({ quests: payload.quests||[], profile: payload.profile||{}, updated_at: cloudUpdated });
-      setState("同期済み（pull）", true);
-      if (typeof render === 'function') setTimeout(()=>render(),0);
-    }else{
-      setState("最新（local）", true);
+  const labelEl = document.getElementById('authMiniLabel');
+  const btnEl = document.getElementById('authMiniBtn');
+  const REDIRECT_TO = location.origin + location.pathname;
+
+  async function refreshLabel(){
+    const sb = await ensureClient();
+    const { data: { user } } = await sb.auth.getUser();
+    if (user) {
+      labelEl.textContent = 'ログイン中: ' + (user.email || user.id);
+      btnEl.textContent = 'サインアウト';
+    } else {
+      labelEl.textContent = '未ログイン';
+      btnEl.textContent = 'サインイン';
     }
   }
 
-  async function push(){
-    const { data:{ user } } = await supabase.auth.getUser();
-    if(!user){ setState("未ログイン（ローカル保存）", false); return; }
-    const s = getLocal();
-    const { error } = await supabase.from("profiles").upsert({ user_id:user.id, payload:{quests:s.quests, profile:s.profile}, updated_at: nowIso() });
-    if(error){ setState("オフライン", false); return; }
-    setState("同期済み（push）", true);
-  }
-
-  window.sbPush = push;
-  window.sbPull = pull;
-
-  const btnIn = document.getElementById("sbSignIn");
-  const btnOut = document.getElementById("sbSignOut");
-  btnIn.addEventListener("click", async ()=>{
-    const email = prompt("メールアドレスを入力してください（Magic Linkを送ります）");
-    if(!email) return;
-    const { error } = await supabase.auth.signInWithOtp({ email, options:{ emailRedirectTo: REDIRECT_TO, shouldCreateUser:true } });
-    if(error) alert("送信失敗: "+error.message); else alert("メールを確認してください");
-  });
-  btnOut.addEventListener("click", async ()=>{
-    await supabase.auth.signOut();
-    setState("未ログイン", false);
-    btnIn.style.display="inline-block"; btnOut.style.display="none";
-  });
-
-  supabase.auth.onAuthStateChange(async (_e, session)=>{
-    const user = session?.user || null;
-    btnIn.style.display = user ? "none" : "inline-block";
-    btnOut.style.display = user ? "inline-block" : "none";
-    setState(user ? `ログイン中: ${user.email||user.id}` : "未ログイン", !!user);
-    if(user){ await pull(true); }
-  });
-
-  (async ()=>{ await pull(true); })();
-</script>
-  
-<!-- ==== Auto Push on Local Save (Drop-in Patch) ==== -->
-<script>
-(() => {
-  // ここはあなたの同期待ちスクリプトで使っているキーと同じにしてください
-  const LS_Q = 'rpg-quest-todo-v8';
-  const LS_P = 'rpg-quest-profile-v4';
-
-  // 1) localStorage.setItem をフックして、対象キーの更新を検知
-  const _setItem = localStorage.setItem.bind(localStorage);
-  let pushTimer = null;
-  function schedulePush() {
-    clearTimeout(pushTimer);
-    pushTimer = setTimeout(() => {
-      if (window.sbPush) window.sbPush();
-    }, 800); // 連続更新をまとめてpush（0.8秒）
-  }
-  localStorage.setItem = function (k, v) {
-    const r = _setItem(k, v);
-    if (k === LS_Q || k === LS_P) schedulePush();
-    return r;
-  };
-
-  // 2) 既存のアプリがカスタムイベント 'local-updated' を飛ばしている場合も拾う
-  window.addEventListener('local-updated', () => {
-    schedulePush();
-  });
-
-  // 3) 右下に手動 PUSH/PULL ボタンを追加（デバッグ用）
-  const bar = document.getElementById('syncFloat');
-  if (bar) {
-    const mkBtn = (label, id) => {
-      const b = document.createElement('button');
-      b.textContent = label;
-      b.id = id;
-      b.style.cssText = 'margin-left:6px;appearance:none;border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.08);color:#fff;border-radius:8px;padding:6px 8px;cursor:pointer';
-      return b;
-    };
-    if (!document.getElementById('sbManualPull')) {
-      bar.appendChild(mkBtn('手動PULL', 'sbManualPull'));
-      document.getElementById('sbManualPull').onclick = () => window.sbPull && window.sbPull(true);
+  btnEl.addEventListener('click', async () => {
+    const sb = await ensureClient();
+    const { data: { user } } = await sb.auth.getUser();
+    if (user) {
+      try { await sb.auth.signOut(); } catch {}
+      try {
+        const keys = [];
+        for (let i=0;i<localStorage.length;i++) {
+          const k = localStorage.key(i);
+          if (k && /^sb-.*-auth-token$/.test(k)) keys.push(k);
+        }
+        keys.forEach(k=>localStorage.removeItem(k));
+      } catch {}
+      await refreshLabel();
+      location.reload();
+    } else {
+      const email = prompt('メールアドレスを入力してください');
+      if(!email) return;
+      const { error } = await sb.auth.signInWithOtp({ email, options:{ emailRedirectTo: REDIRECT_TO, shouldCreateUser:true } });
+      if (error) alert(error.message); else alert('メールを確認してください');
     }
-    if (!document.getElementById('sbManualPush')) {
-      bar.appendChild(mkBtn('手動PUSH', 'sbManualPush'));
-      document.getElementById('sbManualPush').onclick = () => window.sbPush && window.sbPush();
-    }
-  }
-})();
-</script>
-<!-- ==== /Auto Push Patch ==== -->
+  });
 
-<!-- Click guard for sync toolbar -->
-<script>
-  (function(){
-    const bar = document.getElementById('syncFloat');
-    if(!bar) return;
-    // Prevent parent overlays from swallowing events
-    ['pointerdown','pointerup','click','touchstart','touchend'].forEach(ev=>{
-      bar.addEventListener(ev, e=>{ e.stopPropagation(); }, {capture:true});
-    });
-    // Ensure toolbar buttons are type="button"
-    ['sbSignIn','sbSignOut','sbManualPull','sbManualPush'].forEach(id=>{
-      const el = document.getElementById(id);
-      if(el && !el.getAttribute('type')) el.setAttribute('type','button');
-    });
-    // Accessibility
-    bar.setAttribute('role','toolbar'); bar.setAttribute('tabindex','0');
-  })();
-</script>
-
-
-<!-- Shadow DOM sync toolbar (repositionable + strong signOut) -->
-<script>
-(function(){
-  const host = document.createElement('div');
-  host.id = 'sbShadowHost';
-  // default position: top-left to避 overlap
-  host.style.cssText = 'position:fixed;left:12px;top:12px;z-index:2147483647;pointer-events:none;';
-  document.body.appendChild(host);
-  const root = host.attachShadow({mode:'open'});
-
-  const style = document.createElement('style');
-  style.textContent = `
-    :host{ all: initial; }
-    .wrap{ font: 12px/1.3 system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
-           color:#fff; background:rgba(0,0,0,.70);
-           border:1px solid rgba(255,255,255,.25); border-radius:12px;
-           padding:8px; display:flex; gap:6px; align-items:center;
-           pointer-events:auto; backdrop-filter:saturate(1.2) blur(6px);
-         }
-    button{ appearance:none; border:1px solid rgba(255,255,255,.25);
-            background:rgba(255,255,255,.10); color:#fff;
-            border-radius:8px; padding:6px 8px; cursor:pointer; font: inherit; }
-    button:hover{ background:rgba(255,255,255,.18); }
-    .dot{ width:8px; height:8px; border-radius:50%; background:#aaa; display:inline-block; }
-    .on{ background:#54d38a !important; }
-    .label{ margin:0 4px; }
-  `;
-  root.appendChild(style);
-
-  const box = document.createElement('div');
-  box.className = 'wrap';
-  box.innerHTML = `
-    <span class="dot" id="dot"></span>
-    <span class="label" id="label">同期ツール</span>
-    <button type="button" id="pull">手動PULL</button>
-    <button type="button" id="push">手動PUSH</button>
-    <button type="button" id="signout">サインアウト</button>
-    <button type="button" id="pos">位置↔</button>
-    <button type="button" id="shield">盾解除</button>
-  `;
-  root.appendChild(box);
-
-  const $ = id => root.getElementById(id);
-  const set = (txt, on)=>{ $('label').textContent = txt; const d=$('dot'); if(on) d.classList.add('on'); else d.classList.remove('on'); };
-
-  $('pull').onclick = ()=> { if (window.sbPull) { window.sbPull(true).then(()=>set('PULL完了', true)).catch(()=>set('PULL失敗',false)); } else set('sbPull未定義', false); };
-  $('push').onclick = ()=> { if (window.sbPush) { window.sbPush().then(()=>set('PUSH完了', true)).catch(()=>set('PUSH失敗',false)); } else set('sbPush未定義', false); };
-
-  // Strong signOut: call supabase.signOut + clear any sb-*-auth-token keys + reload
-  const signOut = async ()=>{
-    try{
-      const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2');
-      const sb = createClient('https://jjyjcxswkcqtcxenytam.supabase.co',
-                              'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqeWpjeHN3a2NxdGN4ZW55dGFtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg0MzYxMDEsImV4cCI6MjA3NDAxMjEwMX0.Hyp3MGsO8Aouyvctdx3QnQITPlqcLxkdeooBPhFYGEw');
-      await sb.auth.signOut();
-    }catch(e){ /* ignore */ }
-    try{
-      // Clear supabase auth tokens in localStorage
-      const toDelete = [];
-      for (let i=0;i<localStorage.length;i++){
-        const k = localStorage.key(i);
-        if (k && /^sb-.*-auth-token$/.test(k)) toDelete.push(k);
-      }
-      toDelete.forEach(k => { try{ localStorage.removeItem(k); }catch{} });
-    }catch(e){ /* ignore */ }
-    set('サインアウト済み（更新中）', false);
-    setTimeout(()=>location.reload(), 200);
-  };
-  $('signout').onclick = signOut;
-
-  // Position cycler: TL -> TR -> BR -> BL -> TL
-  const positions = [
-    {css:'left:12px;top:12px;', name:'↖ TL'},
-    {css:'right:12px;top:12px;', name:'↗ TR'},
-    {css:'right:12px;bottom:12px;', name:'↘ BR'},
-    {css:'left:12px;bottom:12px;', name:'↙ BL'}
-  ];
-  let posIdx = 0;
-  $('pos').onclick = ()=>{
-    posIdx = (posIdx + 1) % positions.length;
-    host.style.cssText = 'position:fixed;z-index:2147483647;pointer-events:none;' + positions[posIdx].css;
-    set('位置 ' + positions[posIdx].name, true);
-  };
-
-  // Shield breaker
-  let shieldOff = false, prevTarget = null, prevPE = '';
-  $('shield').onclick = ()=>{
-    if(!shieldOff){
-      const rect = host.getBoundingClientRect();
-      const cx = Math.floor(rect.left + 10), cy = Math.floor(rect.top + 10);
-      const target = document.elementFromPoint(cx, cy);
-      if(target && !host.contains(target)){
-        prevTarget = target;
-        prevPE = target.style.pointerEvents;
-        target.style.pointerEvents = 'none';
-        shieldOff = true;
-        $('shield').textContent = '盾解除OFF';
-        set('盾解除ON', true);
-      }else{
-        set('解除対象なし', false);
-      }
-    }else{
-      if(prevTarget){ prevTarget.style.pointerEvents = prevPE; }
-      shieldOff = false;
-      $('shield').textContent = '盾解除';
-      set('盾復元', false);
-    }
-  };
-
-  set('同期ツール', Boolean(window.sbPull||window.sbPush));
-})();
+  (await ensureClient()).auth.onAuthStateChange((_e)=>refreshLabel());
+  refreshLabel();
 </script>
 
 </body>
