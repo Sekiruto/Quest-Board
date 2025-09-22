@@ -840,6 +840,56 @@
 
   (async ()=>{ await pull(true); })();
 </script>
+  
+<!-- ==== Auto Push on Local Save (Drop-in Patch) ==== -->
+<script>
+(() => {
+  // ここはあなたの同期待ちスクリプトで使っているキーと同じにしてください
+  const LS_Q = 'rpg-quest-todo-v8';
+  const LS_P = 'rpg-quest-profile-v4';
+
+  // 1) localStorage.setItem をフックして、対象キーの更新を検知
+  const _setItem = localStorage.setItem.bind(localStorage);
+  let pushTimer = null;
+  function schedulePush() {
+    clearTimeout(pushTimer);
+    pushTimer = setTimeout(() => {
+      if (window.sbPush) window.sbPush();
+    }, 800); // 連続更新をまとめてpush（0.8秒）
+  }
+  localStorage.setItem = function (k, v) {
+    const r = _setItem(k, v);
+    if (k === LS_Q || k === LS_P) schedulePush();
+    return r;
+  };
+
+  // 2) 既存のアプリがカスタムイベント 'local-updated' を飛ばしている場合も拾う
+  window.addEventListener('local-updated', () => {
+    schedulePush();
+  });
+
+  // 3) 右下に手動 PUSH/PULL ボタンを追加（デバッグ用）
+  const bar = document.getElementById('syncFloat');
+  if (bar) {
+    const mkBtn = (label, id) => {
+      const b = document.createElement('button');
+      b.textContent = label;
+      b.id = id;
+      b.style.cssText = 'margin-left:6px;appearance:none;border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.08);color:#fff;border-radius:8px;padding:6px 8px;cursor:pointer';
+      return b;
+    };
+    if (!document.getElementById('sbManualPull')) {
+      bar.appendChild(mkBtn('手動PULL', 'sbManualPull'));
+      document.getElementById('sbManualPull').onclick = () => window.sbPull && window.sbPull(true);
+    }
+    if (!document.getElementById('sbManualPush')) {
+      bar.appendChild(mkBtn('手動PUSH', 'sbManualPush'));
+      document.getElementById('sbManualPush').onclick = () => window.sbPush && window.sbPush();
+    }
+  }
+})();
+</script>
+<!-- ==== /Auto Push Patch ==== -->
 
 </body>
 </html>
