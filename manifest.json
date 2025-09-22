@@ -1,9 +1,1 @@
-{
-  "name": "RPG Quest Board",
-  "short_name": "QuestBoard",
-  "start_url": "./index.html",
-  "display": "standalone",
-  "background_color": "#3b2908",
-  "theme_color": "#3b2908",
-  "icons": []
-}
+{"name":"RPG Quest Board","short_name":"QuestBoard","start_url":"./index.html","display":"standalone"}
