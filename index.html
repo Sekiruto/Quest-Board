@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>RPG Quest Board — ver.08 + Sync + Rule UI (final)</title>
+<title>RPG Quest Board — ver.08 + Sync + Rule UI (seed6-updated)</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#3b2908">
 <script>
@@ -17,17 +17,13 @@ if ('serviceWorker' in navigator) {
   --paper:#f4e4c1; --paper-ink:#2f2616; --searchbg: rgba(255,255,255,.06);
   --muted:#cbb98f; --expText:#cbb98f; --page-bg:linear-gradient(135deg,var(--bg1),var(--bg2));
 }
-*{box-sizing:border-box}
-body{margin:0;background:var(--page-bg);color:var(--ink);font:14px/1.55 system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,'Noto Sans JP',sans-serif}
+*{box-sizing:border-box} body{margin:0;background:var(--page-bg);color:var(--ink);font:14px/1.55 system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,'Noto Sans JP',sans-serif}
 header{position:sticky;top:0;background:rgba(35,26,9,.75);backdrop-filter:blur(6px);border-bottom:1px solid var(--border);z-index:40}
 .wrap{max-width:1120px;margin:0 auto;padding:10px 14px;display:flex;align-items:center;gap:10px}
 h1{font-size:18px;margin:0;font-weight:800}
 .btn{appearance:none;border:1px solid var(--border);background:var(--searchbg);color:var(--ink);padding:8px 12px;border-radius:10px;cursor:pointer}
-.btn:hover{background:rgba(255,255,255,.12)}
-.btn.small{padding:6px 10px;font-size:12px;border-radius:9px}
-.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-.col{display:flex;flex-direction:column;gap:12px}
-.sp{flex:1}
+.btn:hover{background:rgba(255,255,255,.12)} .btn.small{padding:6px 10px;font-size:12px;border-radius:9px}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap} .col{display:flex;flex-direction:column;gap:12px} .sp{flex:1}
 main{max-width:1120px;margin:0 auto;padding:16px}
 .grid{display:grid;grid-template-columns:1fr;gap:16px}
 @media(min-width:980px){.grid{grid-template-columns:1fr 2fr}}
@@ -35,12 +31,10 @@ main{max-width:1120px;margin:0 auto;padding:16px}
 .card h2{margin:0;padding:12px 14px;border-bottom:1px solid var(--border);font-size:15px}
 .content{padding:12px 14px}
 input,select,textarea{width:100%;padding:10px;border-radius:10px;border:1px solid var(--border);background:var(--searchbg);color:var(--ink)}
-select option{color:#000;background:#fff}
-textarea{min-height:72px;resize:vertical}
+select option{color:#000;background:#fff} textarea{min-height:72px;resize:vertical}
 .pill{display:inline-flex;gap:6px;align-items:center;padding:4px 10px;border-radius:999px;background:var(--searchbg);border:1px solid var(--border)}
 .badge{display:inline-flex;gap:6px;align-items:center;padding:2px 8px;border-radius:999px;border:1px solid var(--border);font-size:12px}
-.b-exptext{background:var(--searchbg);color:var(--expText)}
-.muted{color:var(--muted)}
+.b-exptext{background:var(--searchbg);color:var(--expText)} .muted{color:var(--muted)}
 .progress{height:8px;background:rgba(255,255,255,.12);border-radius:999px;overflow:hidden}
 .progress>i{display:block;height:100%;background:linear-gradient(90deg,#e9b161,#e9d861)}
 .tabs{display:grid;grid-template-columns:repeat(2,1fr);gap:6px}
@@ -53,8 +47,7 @@ textarea{min-height:72px;resize:vertical}
 @media(min-width:620px){.list{grid-template-columns:1fr 1fr}}
 .quest{background:var(--paper);color:var(--paper-ink);border:1px solid #e5d7ae;border-radius:12px;padding:10px 10px 44px;position:relative;box-shadow:0 8px 18px rgba(0,0,0,.18)}
 .quest h3{margin:0 0 6px 0;font-size:15px;color:#2a1f0e}
-.desc{color:#443418}
-.unlocks{color:#5a4828;font-size:13px;margin-top:4px}
+.desc{color:#443418} .unlocks{color:#5a4828;font-size:13px;margin-top:4px}
 .box{background:#dbcaa6;border:1px solid var(--border);border-radius:10px;padding:6px 10px;display:inline-flex;align-items:center;gap:6px}
 .quest .fixedActions{position:absolute;left:10px;bottom:8px;display:flex;gap:8px;align-items:center}
 .quest .editBar{position:absolute;right:10px;bottom:8px;display:none;gap:8px}
@@ -90,120 +83,132 @@ textarea{min-height:72px;resize:vertical}
   </div>
 </header>
 
-<!-- Admin Drawer (Add/Edit) -->
-<div id="adminDrawer" class="drawer">
-  <div class="shade" data-close></div>
-  <div class="panel">
-    <div class="wrap" style="padding:10px;border-bottom:1px solid var(--border)">
-      <div style="font-weight:600">クエスト追加 / 編集</div>
-      <div class="sp"></div><button class="btn" data-close>閉じる</button>
-    </div>
-    <div style="padding:12px" class="col">
+<main>
+  <div class="tabs" id="mainTabs">
+    <div class="tab active" data-v="quests">クエスト</div>
+    <div class="tab" data-v="status">ステータス</div>
+  </div>
+
+  <section id="pageQuests" class="grid" style="margin-top:12px">
+    <div class="col">
       <div class="card">
-        <h2 id="formTitle">クエスト追加</h2>
+        <h2>冒険者プロフィール</h2>
         <div class="content col">
-          <input id="qTitle" placeholder="タイトル（例: 本を30分読む）">
-          <textarea id="qDesc" placeholder="説明（任意）"></textarea>
-          <input id="qCategory" placeholder="カテゴリ（任意：例 知識/運動 など）">
           <div class="row">
-            <select id="qDiff" style="max-width:160px">
-              <option value="EASY">EASY</option>
-              <option value="NORMAL" selected>NORMAL</option>
-              <option value="HARD">HARD</option>
-            </select>
-            <span class="pill">獲得XP</span><input type="number" id="qExp" value="50" style="max-width:120px">
-            <span class="pill">獲得G</span><input type="number" id="qGold" value="20" style="max-width:120px">
+            <span class="badge b-exptext">LV <b id="lv">1</b></span>
+            <span class="muted">EXP <b id="expProg">0</b>/<b id="expNeed">100</b></span>
           </div>
-
-          <div class="row">
-            <label class="pill"><input type="radio" name="repeatType" value="REPEAT" checked> 反復クエスト</label>
-            <label class="pill"><input type="radio" name="repeatType" value="SINGLE"> 単発クエスト</label>
-          </div>
-
-          <div class="ruleBox">
-            <div class="row" style="justify-content:space-between">
-              <strong>解放ルール（任意）</strong>
-              <label class="row" style="gap:6px"><input type="checkbox" id="qHideCond"> 条件を隠す</label>
-            </div>
-
-            <!-- 共通: 必要クリア回数 + 種類 -->
-            <div class="ruleGrid">
-              <div>
-                <div class="muted">必要クリア回数</div>
-                <input type="number" id="ruleCount" value="5">
-              </div>
-              <div>
-                <div class="muted">種類</div>
-                <select id="ruleType">
-                  <option value="NONE" selected>ルールなし</option>
-                  <option value="STAT_UP">ステータス上昇</option>
-                  <option value="UNLOCK_SKILL">スキル開放</option>
-                  <option value="UNLOCK_JOB">職業開放</option>
-                </select>
-              </div>
-            </div>
-
-            <!-- レイアウト：STAT_UP -->
-            <div id="ruleStat" class="col" style="display:none">
-              <div class="ruleGrid">
-                <div>
-                  <div class="muted">ステータス</div>
-                  <select id="statTarget">
-                    <option value="HP">体力(HP)</option>
-                    <option value="STR">筋力(STR)</option>
-                    <option value="DEX">敏捷(DEX)</option>
-                    <option value="INT">知力(INT)</option>
-                    <option value="VIT">活力(VIT)</option>
-                    <option value="LUK">運(LUK)</option>
-                  </select>
-                </div>
-                <div>
-                  <div class="muted">増加量</div>
-                  <input type="number" id="statAmount" value="1">
-                </div>
-              </div>
-              <div class="row">
-                <label class="pill"><input type="radio" name="repeatMode" value="each" checked> しきい値ごと（例：3回ごとに上昇）</label>
-                <label class="pill"><input type="radio" name="repeatMode" value="once"> 一度だけ（例：最初の3回達成時のみ）</label>
-              </div>
-            </div>
-
-            <!-- レイアウト：SKILL -->
-            <div id="ruleSkill" class="ruleGrid" style="display:none">
-              <div>
-                <div class="muted">スキルID</div>
-                <input id="skillId" placeholder="任意のID">
-              </div>
-              <div>
-                <div class="muted">スキル名</div>
-                <input id="skillName" placeholder="スキル名">
-              </div>
-            </div>
-
-            <!-- レイアウト：JOB -->
-            <div id="ruleJob" class="ruleGrid" style="display:none">
-              <div>
-                <div class="muted">職業ID</div>
-                <input id="jobId" placeholder="任意のID">
-              </div>
-              <div>
-                <div class="muted">職業名</div>
-                <input id="jobName" placeholder="職業名">
-              </div>
-            </div>
-          </div>
-
-          <div class="row">
-            <button id="addQuestBtn" class="btn">掲示板に貼る</button>
-            <button id="cancelEditBtn" class="btn" style="display:none">編集をキャンセル</button>
+          <div class="progress"><i id="expBar" style="width:0%"></i></div>
+          <div class="row" style="margin-top:6px">
+            <span class="badge b-exptext">💰 <b id="gold">0</b> Gold</span>
           </div>
         </div>
       </div>
     </div>
-  </div>
-</div>
+    <div class="col">
+      <div class="card">
+        <h2>クエスト掲示板</h2>
+        <div class="content col">
+          <div class="row" style="flex-wrap:wrap; gap:8px">
+            <div id="filters" class="tabs" style="grid-template-columns:repeat(3,1fr)">
+              <div data-v="ACTIVE" class="tab active">進行中</div>
+              <div data-v="ARCHIVED" class="tab">完了</div>
+              <div data-v="ALL" class="tab">全部</div>
+            </div>
+            <div class="search" style="flex:1"><input id="search" placeholder="検索（タイトル・説明）"></div>
+          </div>
+          <div id="list" class="list" style="margin-top:8px"></div>
+        </div>
+      </div>
+    </div>
+  </section>
 
-<!-- 以下はクエスト掲示板/ステータス表示・JS部分（省略せず続く） -->
-<!-- ... -->
-</body>
-</html>
+  <section id="pageStatus" style="display:none;margin-top:12px">
+    <div class="card">
+      <h2>ステータス</h2>
+      <div class="content col">
+        <div class="statTiles">
+          <div class="statTile">HP<br><b id="statHP">10</b></div>
+          <div class="statTile">STR<br><b id="statSTR">1</b></div>
+          <div class="statTile">DEX<br><b id="statDEX">1</b></div>
+          <div class="statTile">INT<br><b id="statINT">1</b></div>
+          <div class="statTile">VIT<br><b id="statVIT">1</b></div>
+        </div>
+        <div class="row" style="margin-top:6px"><span class="badge b-exptext">💰 <b id="gold2">0</b> Gold</span></div>
+        <div class="tabs" id="statusTabs" style="grid-template-columns:repeat(3,1fr);margin-top:8px">
+          <div class="tab active" data-v="overview">概要</div>
+          <div class="tab" data-v="cleared">クリア済み</div>
+          <div class="tab" data-v="jobsSkills">職業/スキル</div>
+        </div>
+        <div id="statusOverview" class="col" style="margin-top:8px">
+          <div class="muted">クエスト達成で解放される職業やスキル、ステータス上昇はここに反映されます。</div>
+        </div>
+        <div id="statusCleared" class="col" style="display:none;margin-top:8px">
+          <div id="clearedList" class="muted">まだありません</div>
+        </div>
+        <div id="statusJobsSkills" class="col" style="display:none;margin-top:8px">
+          <div class="row"><h3 style="margin:0">職業</h3></div>
+          <div id="jobsList" class="muted">未解放</div>
+          <div class="row" style="margin-top:10px"><h3 style="margin:0">スキル</h3></div>
+          <div id="skillsList" class="muted">未解放</div>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<div id="syncFloat"><span class="dot" id="syncDot"></span><span id="syncText">未ログイン</span>
+<button id="sbSignIn">サインイン</button><button id="sbSignOut" style="display:none">サインアウト</button></div>
+
+<script type="module">
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+const SUPABASE_URL = "https://jjyjcxswkcqtcxenytam.supabase.co";
+const SUPABASE_ANON_KEY = "YOUR_ANON_KEY_HERE";
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+const LS_Q='rpg-quest-todo-v8', LS_P='rpg-quest-profile-v4', LS_UPDATED='rpg-updated-at';
+const $ = (id)=>document.getElementById(id);
+const nowIso = ()=>new Date().toISOString();
+const uid = ()=>crypto.randomUUID();
+
+function loadLocal(){
+  return {
+    quests: JSON.parse(localStorage.getItem(LS_Q)||'[]'),
+    profile: JSON.parse(localStorage.getItem(LS_P)||'{"gold":0,"exp":0,"stats":{"HP":10,"STR":1,"DEX":1,"INT":1,"VIT":1},"skills":[],"jobs":[]}'),
+    updated_at: localStorage.getItem(LS_UPDATED) || null
+  };
+}
+function saveLocal(data){
+  localStorage.setItem(LS_Q, JSON.stringify(data.quests));
+  localStorage.setItem(LS_P, JSON.stringify(data.profile));
+  localStorage.setItem(LS_UPDATED, data.updated_at || nowIso());
+  dispatchEvent(new Event('local-updated'));
+}
+function levelFromExp(exp){ let lvl=1, need=100, left=exp; while(left>=need){ left-=need; lvl++; need+=50; } return {level:lvl,toNext:need,progress:left}; }
+
+// ===== default 6 quests (UPDATED) =====
+const defaultQuests = [
+  { id: uid(), title:"【読書[ビギナー]】知識の芽を育てよ", category:"知識", difficulty:"EASY", gold:20, exp:30, description:"25分読書する。", repeatType:"REPEAT", timesCompleted:0, archived:false, rule:{type:"NONE"} },
+  { id: uid(), title:"【読書ノービス】小さな書庫を開け", category:"知識", difficulty:"EASY", gold:30, exp:40, description:"読書を36分する。", repeatType:"REPEAT", timesCompleted:0, archived:false, rule:{type:"STAT_UP", count:7, statTarget:"INT", amount:1, repeatMode:"once"} },
+  { id: uid(), title:"【瞑想[ビギナー]】静寂の扉をノックせよ", category:"精神", difficulty:"EASY", gold:5, exp:10, description:"瞑想を10分する。", repeatType:"REPEAT", timesCompleted:0, archived:false, rule:{type:"NONE"} },
+  { id: uid(), title:"【瞑想ノービス】心の湖に石を投じよ", category:"精神", difficulty:"EASY", gold:25, exp:30, description:"瞑想を20分する。", repeatType:"REPEAT", timesCompleted:0, archived:false, rule:{type:"STAT_UP", count:7, statTarget:"INT", amount:1, repeatMode:"once"} },
+  { id: uid(), title:"【歩行[ビギナー]】石畳を10歩進め", category:"運動", difficulty:"EASY", gold:15, exp:30, description:"20分間ウォーキングする。", repeatType:"REPEAT", timesCompleted:0, archived:false, rule:{type:"NONE"} },
+  { id: uid(), title:"【歩行ノービス】朝霧の小道を往け", category:"運動", difficulty:"NORMAL", gold:25, exp:40, description:"30分間ウォーキングする。", repeatType:"REPEAT", timesCompleted:0, archived:false, rule:{type:"STAT_UP", count:5, statTarget:"VIT", amount:1, repeatMode:"each"} }
+];
+
+function questCardHTML(q){
+  return `<div class="quest" data-id="${q.id}">
+    <h3><span class="box">${q.title}</span></h3>
+    ${q.description?`<div class="desc">${q.description}</div>`:''}
+    ${q.rule?.type && q.rule.type!=="NONE" ? `<div class="unlocks">${ruleText(q.rule)}</div>`:''}
+    <div class="row" style="margin-top:8px;justify-content:flex-end">
+      <span class="box">${q.difficulty||'NORMAL'}</span>
+      <span class="box">💰 ${q.gold||0} G</span>
+      <span class="box">⭐ ${q.exp||0} XP</span>
+      <span class="box">反復 ×${q.timesCompleted||0}</span>
+    </div>
+    <div class="fixedActions"><button class="btn small" data-act="done">達成報告</button></div>
+  </div>`;
+}
+function ruleText(r){
+  if(r.type==="STAT_UP"){ return `条件(${r.count}回)で ${r.statTarget}+${r.amount}${r.repeatMode==='each'?'
