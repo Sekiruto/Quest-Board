@@ -685,7 +685,8 @@
     }
     try {
       // ★★★ 修正箇所 ★★★
-      const questDocRef = doc(collection(doc(collection(window.firebaseDb, 'users'), window.firebaseAuth.currentUser.uid), 'quests'), id);
+      // 正しいコード
+      const questDocRef = doc(window.firebaseDb, 'users', window.firebaseAuth.currentUser.uid, 'quests', id);
       await deleteDoc(questDocRef);
       // ★★★ ここまで修正 ★★★
       console.log("Quest removed from Firestore:", id);
@@ -702,7 +703,8 @@
     }
     try {
       // ★★★ 修正箇所 ★★★
-      const questRef = doc(collection(doc(collection(window.firebaseDb, 'users'), window.firebaseAuth.currentUser.uid), 'quests'), q.id);
+      // 正しいコード
+      const questRef = doc(window.firebaseDb, 'users', window.firebaseAuth.currentUser.uid, 'quests', q.id);
       await setDoc(questRef, q); // Firestoreにクエストを追加/上書き
       // ★★★ ここまで修正 ★★★
       console.log("Quest added to Firestore:", q.id);
@@ -1039,6 +1041,7 @@
 
         // クエストサブコレクション内の全てのクエストを削除
         // ★★★ 修正箇所 ★★★
+        // 正しいコード
         const questsCollectionRef = collection(userDocRef, 'quests'); // userDocRefからサブコレクション参照を取得
         const snapshot = await getDocs(questsCollectionRef); // get()ではなくgetDocs()を使用
         const batch = writeBatch(window.firebaseDb); // writeBatchをトップレベル関数として呼び出し
@@ -1052,8 +1055,8 @@
         // ★★★ 修正箇所 ★★★
         const newQuestsBatch = writeBatch(window.firebaseDb);
         SEED.forEach(qData => {
-          const newQuestRef = doc(questsCollectionRef, qData.id); // doc関数を使用
-          newQuestsBatch.set(qData);
+          const newQuestRef = doc(questsCollectionRef, qData.id);
+          newQuestsBatch.set(newQuestRef, qData); // setDoc()と同様に、ここではドキュメント参照を使用
         });
         await newQuestsBatch.commit();
         // ★★★ ここまで修正 ★★★
