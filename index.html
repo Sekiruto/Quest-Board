@@ -497,8 +497,8 @@ if (loginBtnEl && !loginBtnEl.__guestBound){
   function levelFromExp(exp){ let lvl=1, need=100, left=exp; while(left>=need){ left-=need; lvl++; need+=50; } return {level:lvl,toNext:need,progress:left}; }
   // save関数をFirebase対応に置き換え
   function save(){
-    if (window.appState.currentUser && window.appState.db) {
-      window.appState.saveUserData(window.appState.currentUser.uid); // プロフィールを保存
+    if (window.firebaseAuth.currentUser && window.firebaseDb) {
+      window.appState.saveUserData(window.firebaseAuth.currentUser.uid); // プロフィールを保存
       // クエストの保存は個別の追加・更新・削除時に行われるため、ここでは不要
     } else {
       localStorage.setItem(LS_Q, JSON.stringify(quests));
@@ -537,10 +537,10 @@ if (loginBtnEl && !loginBtnEl.__guestBound){
 
   // Firebaseデータロード関数
   async function loadUserDataFromFirestore(uid) {
-    if (!window.appState.db || !uid) return;
+    if (!window.firebaseDb || !uid) return;
     console.log(`Loading data for user: ${uid}`);
 
-    const userDocRef = window.appState.db.collection('users').doc(uid);
+    const userDocRef = window.firebaseDb.collection('users').doc(uid);
 
     try {
       const userDoc = await userDocRef.get();
@@ -553,7 +553,7 @@ if (loginBtnEl && !loginBtnEl.__guestBound){
       }
 
       // Questsのリアルタイムリスナーを設定
-      window.appState.db.collection('users').doc(uid).collection('quests').orderBy('order').onSnapshot(snapshot => {
+      window.firebaseDb.collection('users').doc(uid).collection('quests').orderBy('order').onSnapshot(snapshot => {
         quests = [];
         snapshot.forEach(doc => {
           quests.push(doc.data());
@@ -571,10 +571,10 @@ if (loginBtnEl && !loginBtnEl.__guestBound){
 
   // Firebaseデータ保存関数
   async function saveUserDataToFirestore(uid) {
-    if (!window.appState.db || !uid) return;
+    if (!window.firebaseDb || !uid) return;
     console.log(`Saving data for user: ${uid}`);
 
-    const userDocRef = window.appState.db.collection('users').doc(uid);
+    const userDocRef = window.firebaseDb.collection('users').doc(uid);
 
     try {
       await userDocRef.set({ profile: profile }, { merge: true }); // merge: true で既存フィールドを上書きせず更新
@@ -586,7 +586,7 @@ if (loginBtnEl && !loginBtnEl.__guestBound){
   
   // completeQuestById関数をFirebase対応に置き換え
   async function completeQuestById(id){
-    if (!window.appState.currentUser || !window.appState.db) {
+    if (!window.firebaseAuth.currentUser || !window.firebaseDb) {
       // 未ログイン時の既存ロジック
       const q = quests.find(x=> x.id===id); if(!q) return;
       const before = levelFromExp(profile.exp).level;
@@ -603,11 +603,11 @@ if (loginBtnEl && !loginBtnEl.__guestBound){
     }
 
     const q = quests.find(x=> x.id===id); if(!q) return;
-    const questRef = window.appState.db.collection('users').doc(window.appState.currentUser.uid).collection('quests').doc(id);
-    const userDocRef = window.appState.db.collection('users').doc(window.appState.currentUser.uid);
+    const questRef = window.firebaseDb.collection('users').doc(window.firebaseAuth.currentUser.uid).collection('quests').doc(id);
+    const userDocRef = window.firebaseDb.collection('users').doc(window.firebaseAuth.currentUser.uid);
 
     try {
-      await window.appState.db.runTransaction(async (transaction) => {
+      await window.firebaseDb.runTransaction(async (transaction) => {
         const questDoc = await transaction.get(questRef);
         if (!questDoc.exists) {
           throw "Quest does not exist!";
@@ -664,12 +664,12 @@ if (loginBtnEl && !loginBtnEl.__guestBound){
 
   // removeQuestById関数をFirebase対応に置き換え
   async function removeQuestById(id){
-    if (!window.appState.currentUser || !window.appState.db) {
+    if (!window.firebaseAuth.currentUser || !window.firebaseDb) {
       quests = quests.filter(q=> q.id!==id); save(); // save()が未ログイン時render()を呼ぶ
       return;
     }
     try {
-      await window.appState.db.collection('users').doc(window.appState.currentUser.uid).collection('quests').doc(id).delete();
+      await window.firebaseDb.collection('users').doc(window.firebaseAuth.currentUser.uid).collection('quests').doc(id).delete();
       console.log("Quest removed from Firestore:", id);
     } catch (error) {
       console.error("Error removing quest from Firestore:", error);
@@ -678,12 +678,12 @@ if (loginBtnEl && !loginBtnEl.__guestBound){
 
   // addQuest関数をFirebase対応に置き換え
   async function addQuest(q){
-    if (!window.appState.currentUser || !window.appState.db) {
+    if (!window.firebaseAuth.currentUser || !window.firebaseDb) {
       if(typeof q.order!=='number') q.order = quests.length; quests = [q,...quests]; save(); // save()が未ログイン時render()を呼ぶ
       return;
     }
     try {
-      const questRef = window.appState.db.collection('users').doc(window.appState.currentUser.uid).collection('quests').doc(q.id);
+      const questRef = window.firebaseDb.collection('users').doc(window.firebaseAuth.currentUser.uid).collection('quests').doc(q.id);
       await questRef.set(q); // Firestoreにクエストを追加/上書き
       console.log("Quest added to Firestore:", q.id);
     } catch (error) {
@@ -1006,22 +1006,22 @@ if (loginBtnEl && !loginBtnEl.__guestBound){
   E.resetBtn.addEventListener('click', async ()=>{
     if(!confirm('全てのデータを初期化しますか？（ログイン中の場合はFirebaseデータも初期化されます）')) return;
 
-    if (window.appState.currentUser && window.appState.db) {
-      const uid = window.appState.currentUser.uid;
+    if (window.firebaseAuth.currentUser && window.firebaseDb) {
+      const uid = window.firebaseAuth.currentUser.uid;
       try {
-        await window.appState.db.collection('users').doc(uid).set({
+        await window.firebaseDb.collection('users').doc(uid).set({
           profile: { gold:0, exp:0, stats:{ hp:10, str:1, dex:1, int:1, vit:1 }, skills:[], jobs:[], appliedUnlocks:[], skillPoints:{unspent:2, perJob:{}}, lastLevel:1 }
         });
 
-        const questsRef = window.appState.db.collection('users').doc(uid).collection('quests');
+        const questsRef = window.firebaseDb.collection('users').doc(uid).collection('quests');
         const snapshot = await questsRef.get();
-        const batch = window.appState.db.batch();
+        const batch = window.firebaseDb.batch();
         snapshot.docs.forEach(doc => {
           batch.delete(doc.ref);
         });
         await batch.commit();
 
-        const newQuestsBatch = window.appState.db.batch();
+        const newQuestsBatch = window.firebaseDb.batch();
         SEED.forEach(qData => {
           const newQuestRef = questsRef.doc(qData.id);
           newQuestsBatch.set(qData);
@@ -1061,104 +1061,5 @@ if (loginBtnEl && !loginBtnEl.__guestBound){
   // render(); // この行は削除またはコメントアウト
 })();
 </script>
-
-<script type="module">
-  // Import the functions you need from the SDKs you need
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-app.js";
-  import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-analytics.js";
-  // ★★★ 修正点 ★★★: メール/パスワード認証に必要なものをインポート
-  import { getAuth, onAuthStateChanged, signOut, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-auth.js";
-  import { getFirestore } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore.js";
-
-
-  // Your web app's Firebase configuration
-  // ★★★ 重要 ★★★: ここは必ず、Firebaseコンソールからコピーしたあなたのプロジェクトの正確な firebaseConfig を貼り付けてください。
-  // 例:
-  const firebaseConfig = {
-    apiKey: "AIzaSyDw8IRU5sjphX0gowwJ2oKeOgtqaxe5hfY",
-    authDomain: "quest-board-d5ed7.firebaseapp.com",
-    projectId: "quest-board-d5ed7",
-    storageBucket: "quest-board-d5ed7.firebasestorage.app",
-    messagingSenderId: "307394427906",
-    appId: "1:307394427906:web:ab33924af2806a1caa7b1b",
-    measurementId: "G-Z2RCWRN6P2"
-  };
-
-  // Initialize Firebase
-  const app = initializeApp(firebaseConfig);
-  const analytics = getAnalytics(app);
-  const auth = getAuth(app); // Authenticationインスタンス
-  const db = getFirestore(app); // Firestoreインスタンス
-
-  // ★★★ 修正点 ★★★: Firebaseインスタンスを window.appState に登録
-  window.appState = window.appState || {}; // 既存の window.appState があればそれを利用
-  window.appState.auth = auth; // authインスタンスを登録
-  window.appState.db = db;     // dbインスタンスを登録
-  window.appState.currentUser = null; // onAuthStateChanged で更新される
-
-  // ★★★ 修正点 ★★★: DOM要素の取得を onAuthStateChanged の外に移動し、効率化
-  const userStatusEl = document.getElementById('userStatus');
-  const loginBtnEl = document.getElementById('loginBtn');
-  const logoutBtnEl = document.getElementById('logoutBtn');
-  const resetBtnEl = document.getElementById('resetBtn');
-
-
-  onAuthStateChanged(auth, (user) => {
-    window.appState.currentUser = user; // window.appState の currentUser を更新
-
-    if (user) {
-      // ログイン済み
-      if (userStatusEl) userStatusEl.textContent = `ようこそ、${user.email}さん`;
-      if (loginBtnEl) loginBtnEl.style.display = 'none';
-      if (logoutBtnEl) logoutBtnEl.style.display = 'inline-block';
-      if (resetBtnEl) resetBtnEl.style.display = 'inline-block'; // ログイン中は初期化ボタンを表示
-      if (window.appState.loadUserData) {
-        window.appState.loadUserData(user.uid); // ユーザー固有のデータをロード
-      }
-    } else {
-      // ログアウト済み
-      if (userStatusEl) userStatusEl.textContent = 'ゲスト';
-      if (loginBtnEl) loginBtnEl.style.display = 'inline-block';
-      if (logoutBtnEl) logoutBtnEl.style.display = 'none';
-      if (resetBtnEl) resetBtnEl.style.display = 'none'; // ログアウト中は初期化ボタンを非表示
-      
-      // メインのスクリプト側で処理されることを想定しているため、ここでは UI 更新のみ
-      if (window.appState.renderApp) {
-        window.appState.renderApp(); // UIを更新
-      }
-    }
-    // ★★★ 修正点 ★★★: onAuthStateChanged の最後の冗長な renderApp() 呼び出しは削除
-    // if (window.appState.renderApp) {
-    //   window.appState.renderApp(); // UIを更新
-    // }
-  });
-
-  // ログイン・ログアウト処理のイベントリスナー
-  document.addEventListener('click', async (e) => {
-    if (e.target.id === 'loginBtn') {
-      // ★★★ 修正点 ★★★: メール/パスワード認証プロンプトに変更
-      const email = prompt("メールアドレスを入力してください:");
-      const password = prompt("パスワードを入力してください:");
-      if (email && password) {
-        try {
-          await signInWithEmailAndPassword(auth, email, password);
-          alert("ログインしました！");
-        } catch (error) {
-          alert(`ログインエラー: ${error.message}`);
-          console.error("ログインエラー:", error);
-        }
-      }
-    } else if (e.target.id === 'logoutBtn') {
-      try {
-        await signOut(auth);
-        alert("ログアウトしました。");
-      } catch (error) {
-        alert(`ログアウトエラー: ${error.message}`);
-        console.error("ログアウトエラー:", error);
-      }
-    }
-  });
-</script>
-
 </body>
 </html>
