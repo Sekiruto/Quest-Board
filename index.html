@@ -130,6 +130,8 @@
   const auth = getAuth(app);
   const db   = getFirestore(app);
 
+ Object.assign(window, { collection, doc, setDoc, getDoc, getDocs, runTransaction, onSnapshot, query, orderBy, deleteDoc, writeBatch });
+ 
   window.firebaseAuth = auth;
   window.firebaseDb   = db;
 
