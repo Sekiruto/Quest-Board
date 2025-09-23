@@ -111,9 +111,9 @@
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.1.0/firebase-app.js";
   import { getAuth, onAuthStateChanged, signOut, signInWithPopup, GoogleAuthProvider } from "https://www.gstatic.com/firebasejs/10.1.0/firebase-auth.js";
   import {
-    getFirestore, collection, doc, setDoc, getDoc, getDocs, serverTimestamp,
-    runTransaction, onSnapshot, query, orderBy, deleteDoc, writeBatch
-  } from "https://www.gstatic.com/firebasejs/10.1.0/firebase-firestore.js";
+  getFirestore, collection, doc, setDoc, updateDoc, getDoc, getDocs, serverTimestamp,
+  runTransaction, onSnapshot, query, orderBy, deleteDoc, writeBatch
+} from "https://www.gstatic.com/firebasejs/10.1.0/firebase-firestore.js";
 
   // TODO: あなたの firebaseConfig をここに貼り付けてください
   const firebaseConfig = {
