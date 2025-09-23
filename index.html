@@ -17,1077 +17,497 @@
   *{box-sizing:border-box}
   body{margin:0;background:linear-gradient(135deg,var(--bg1),var(--bg2));color:var(--ink);
        font:14px/1.55 system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,'Noto Sans JP',sans-serif}
-  header{position:sticky;top:0;background:rgba(35,26,9,.75);backdrop-filter:blur(6px);
-         border-bottom:1px solid var(--border);z-index:20}
-  .wrap{max-width:1120px;margin:0 auto;padding:10px 14px;display:flex;align-items:center;gap:10px}
-  h1{font-size:18px;margin:0;font-weight:800;letter-spacing:.3px}
-  .btn{appearance:none;border:1px solid var(--border);background:var(--searchbg);color:var(--ink);
-       padding:8px 12px;border-radius:10px;cursor:pointer}
-  .btn:hover{background:rgba(255,255,255,.12)}
-  .btn.small{padding:6px 10px;font-size:12px;border-radius:9px}
-  .btn.danger{background:#9a1f1f;border-color:#7f1717}
-  .btn.danger:hover{background:#b32626}
-  .btn.ghost{background:transparent}
-  .grid{display:grid;grid-template-columns:1fr;gap:16px;padding:16px}
-  @media(min-width:980px){.grid{grid-template-columns:1fr 2fr}}
-  .card{background:rgba(0,0,0,.18);border:1px solid var(--border);border-radius:16px;overflow:hidden}
-  .card.hardwood{background:rgba(0,0,0,.22)}
-  .card h2{margin:0;padding:12px 14px;border-bottom:1px solid var(--border);font-size:15px}
-  .card .content{padding:12px 14px}
-  .row{display:flex;gap:8px;align-items:center}
-  .space{flex:1}
-  .col{display:flex;flex-direction:column;gap:8px}
-  input, select, textarea{width:100%;padding:9px 11px;border-radius:10px;border:1px solid var(--border);
-      background:var(--searchbg);color:var(--ink)}
-  select option{ color:#000; background:#fff; }
-  textarea{min-height:70px;resize:vertical}
-  .badge{display:inline-flex;align-items:center;gap:6px;padding:2px 8px;border-radius:999px;border:1px solid var(--border);font-size:12px}
-  .b-amber{background:rgba(251,191,36,.10);color:#7a5a12}
-  .b-indigo{background:rgba(99,102,241,.10);color:#30335e}
-  .b-green{background:rgba(16,185,129,.12);color:#115b44}
-  .b-slate{background:rgba(148,163,184,.14);color:#374151}
-  .b-tag{background:var(--searchbg);color:#564223}
-  .b-exptext{background:var(--searchbg);color:var(--muted)}
-  .progress{height:8px;background:rgba(255,255,255,.12);border-radius:999px;overflow:hidden}
-  .progress>i{display:block;height:100%;background:linear-gradient(90deg,#e9b161,#e9d861)}
-  .tabs{display:grid;grid-template-columns:repeat(6,1fr);gap:6px}
-  .tab{padding:6px 8px;text-align:center;border:1px solid var(--border);border-radius:999px;background:var(--searchbg);cursor:pointer;font-size:12px}
-  .tab.active{background:rgba(255,255,255,.16)}
-  .search{position:relative}
-  .search input{padding-left:30px}
-  .search:before{content:'🔎';position:absolute;left:8px;top:50%;transform:translateY(-50%);opacity:.7}
-  .list{display:grid;grid-template-columns:1fr;gap:12px}
-  @media(min-width:620px){.list{grid-template-columns:1fr 1fr}}
-  .quest{background:var(--paper);color:var(--paper-ink);border:1px solid #e5d7ae;border-radius:12px;padding:10px;
-         box-shadow:0 8px 18px rgba(0,0,0,.18); position:relative}
-  .quest.locked{border-style:double; opacity:0.95}
-  .quest.dragging{opacity:.6;outline:2px dashed #b8872a}
-  .handle{cursor:grab;user-select:none;font-size:16px;line-height:1; padding:4px 8px; border-radius:8px; background:#ead7aa; color:#5a4726}
-  .handle.disabled{opacity:.35; cursor:not-allowed}
-  .quest h3{margin:0 0 6px 0;font-size:15px;color:#2a1f0e}
-  .desc{color:#443418}
-  .unlocks{color:#5a4828;font-size:13px;margin-top:4px}
-  .muted{color:var(--muted)}
-  .split{display:grid;grid-template-columns:1fr;gap:16px}
-  @media(min-width:980px){.split{grid-template-columns:1fr 2fr}}
-  .drawer{position:fixed;inset:0;display:none}
-  .drawer.open{display:block}
-  .drawer .panel{position:absolute;inset:0 35% 0 0;background:#1c1407;border-right:1px solid var(--border);overflow:auto;z-index:50}
-  @media(max-width:980px){.drawer .panel{inset:0;max-width:460px}}
-  .drawer .shade{position:absolute;inset:0;background:rgba(0,0,0,.35)}
-  .pill{padding:2px 8px;border-radius:999px;border:1px solid var(--border);background:var(--searchbg)}
-  .subtabs{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
-  .subtab{padding:6px 8px;text-align:center;border:1px solid var(--border);border-radius:999px;background:var(--searchbg);cursor:pointer;font-size:12px}
-  .subtab.active{background:rgba(255,255,255,.16)}
-  .row.end{justify-content:flex-end}
-  .hint{font-size:12px;color:#a38959}
-  .box{background:var(--midpaper); border:1px solid var(--border); border-radius:10px; padding:6px 10px; display:inline-flex; align-items:center; gap:6px}
-  .corner-btn{position:absolute; top:8px; right:8px; background:var(--searchbg); border:1px solid var(--border); border-radius:10px; padding:6px 8px; cursor:pointer}
-  .corner-btn.lock{color:#d8caa6}
-  .corner-btn.lock.active{color:#ffe08a}
-  .corner-btn:hover{background:rgba(255,255,255,.12)}
-  .disabled{opacity:.5; pointer-events:none}
-  .sp-row{display:flex; align-items:center; gap:10px; justify-content:space-between; padding:6px 0; border-bottom:1px dashed rgba(0,0,0,.1)}
-  .sp-name{min-width:7em}
-  .sp-ctrl{display:flex; align-items:center; gap:6px}
-  .sp-ctrl .arrow{border:1px solid var(--border); background:var(--searchbg); padding:4px 8px; border-radius:8px; cursor:pointer}
-  .sp-ctrl .arrow.disabled{opacity:.5; pointer-events:none}
-  .sp-num{min-width:2em; text-align:center; background:var(--midpaper); border:1px solid var(--border); border-radius:8px; padding:2px 8px; color:var(--paper-ink)}
-  .sp-total{min-width:2.5em; text-align:right; font-weight:700; color:#5a4726}
-  .sp-footer{display:flex; justify-content:space-between; align-items:center; margin-top:8px}
-  .sp-remain{color:#ffe08a; font-weight:700}
-  .footer-row{display:flex; align-items:center; gap:8px; margin-top:8px}
-  .footer-row .spacer{flex:1}
+  header{position:sticky;top:0;background:rgba(35,26,9,.75);backdrop-filter:blur(3px);z-index:2}
+  nav{display:flex;align-items:center;padding:8px 12px;max-width:800px;margin:0 auto;gap:12px;height:48px}
+  nav > .logo{font-weight:700;font-size:18px;letter-spacing:-.03em;text-shadow:0 0 1px var(--ink)}
+  nav > .fill{flex:1}
+  .btn{appearance:none;border:none;background:var(--accent);color:var(--ink);
+       font:inherit;font-weight:700;padding:4px 12px;cursor:pointer;
+       border-radius:4px;box-shadow:0 0 0 1px var(--border) inset, 0 1px 0 rgba(0,0,0,.25);
+       text-shadow:0 1px 0 rgba(0,0,0,.15);height:32px;white-space:nowrap}
+  .btn:hover{background:var(--accent-2);box-shadow:0 0 0 1px var(--border) inset, 0 1px 2px rgba(0,0,0,.25)}
+  .btn:active{transform:translateY(1px);box-shadow:0 0 0 1px var(--border) inset}
+  .btn.ghost{background:transparent;box-shadow:none;text-shadow:none;color:var(--muted)}
+  .btn.ghost:hover{color:var(--ink);background:rgba(255,255,255,.05);box-shadow:none}
+  .btn.ghost:active{transform:none}
+  .btn.reset{background:#c05040;color:var(--ink)}
+  main{max-width:800px;margin:0 auto}
+  .quest-board{padding:12px 0}
+  .quest-list{display:flex;flex-direction:column;gap:8px}
+  .quest-card{
+    display:grid; grid-template-rows: auto 1fr auto;
+    background:var(--paper); color:var(--paper-ink);
+    padding:16px; border-radius:8px; box-shadow:0 2px 4px rgba(0,0,0,.1);
+    position:relative; overflow:hidden;
+  }
+  .quest-card::before{
+    content:''; position:absolute; top:0;left:0; right:0; bottom:0;
+    background:linear-gradient(135deg, rgba(255,255,255,.7) 0%, rgba(255,255,255,0) 25%);
+    opacity:.5;
+    transform:skewX(-25deg) translateX(-100%);
+    transition:transform .5s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .quest-card:hover::before{ transform:skewX(-25deg) translateX(100%); }
+  .quest-card.archived{
+    filter:grayscale(100%); opacity:.6;
+    background:var(--midpaper);
+  }
+  .quest-card.archived::before{ display:none; }
+  .quest-card.locked{
+    filter:grayscale(100%); opacity:.5;
+    background:var(--midpaper);
+    pointer-events: none;
+  }
+  .quest-card.locked > *{opacity:.5}
+  .quest-header{display:flex;align-items:center;gap:8px;position:relative}
+  .quest-header .title{font-weight:700;font-size:18px;flex:1}
+  .quest-header .reward{font-size:12px;white-space:nowrap;display:flex;gap:4px;align-items:center}
+  .quest-meta{display:flex;gap:4px;font-size:12px;color:var(--muted);justify-content:flex-end}
+  .quest-body{
+    line-height:1.6; margin:8px 0; font-size:15px;
+    border:1px dashed var(--border); padding:8px; border-radius:4px;
+    background:rgba(0,0,0,.03);
+  }
+  .quest-body p:first-child{margin-top:0}
+  .quest-body p:last-child{margin-bottom:0}
+  .quest-footer{display:flex;gap:8px;justify-content:flex-end;position:relative}
+  .quest-footer .lock-btn{position:absolute;top:4px;left:4px;width:24px;height:24px;
+                        background:var(--ink); border-radius:50%; display:grid; place-items:center}
+  .quest-footer .lock-btn svg{width:16px;height:16px}
+  .quest-footer .edit-btn{position:absolute;top:4px;left:4px;width:24px;height:24px;
+                        background:var(--ink); border-radius:50%; display:grid; place-items:center}
+  .quest-footer .edit-btn svg{width:16px;height:16px}
+  .quest-footer .delete-btn{position:absolute;top:4px;right:4px;width:24px;height:24px;
+                          background:var(--ink); border-radius:50%; display:grid; place-items:center}
+  .quest-footer .delete-btn svg{width:16px;height:16px}
+  .profile-panel{
+    display:flex; flex-direction:column;gap:16px;
+    background:var(--panel); color:var(--ink);
+    padding:16px; border-radius:8px;
+    box-shadow:0 2px 4px rgba(0,0,0,.1);
+    margin:12px;
+  }
+  .profile-panel h2{font-weight:700;font-size:18px;margin:0 0 8px 0}
+  .profile-stats{display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
+  .profile-stats > div{
+    display:flex; flex-direction:column; align-items:center;
+    background:var(--bg2); padding:8px 12px; border-radius:4px;
+    box-shadow:0 1px 0 rgba(0,0,0,.1); min-width:60px
+  }
+  .profile-stats .val{font-size:24px;font-weight:700;color:var(--accent-2)}
+  .profile-stats .label{font-size:12px;color:var(--muted)}
+  .profile-meter{display:flex;align-items:center;gap:8px}
+  .profile-meter .label{font-size:14px;white-space:nowrap}
+  .profile-meter .bar{
+    flex:1;height:8px;background:var(--bg2);border-radius:4px;
+    position:relative;overflow:hidden;
+  }
+  .profile-meter .bar::before{
+    content:''; position:absolute; top:0;left:0;bottom:0;
+    background:var(--green); transition:width .25s ease-out
+  }
+  .profile-meter .label.exp{font-size:12px}
+  .add-quest-panel{
+    padding:16px; background:var(--panel);
+    border-radius:8px; margin:12px;
+    display:flex; flex-direction:column; gap:12px;
+  }
+  .add-quest-panel h3{margin:0;font-weight:700;font-size:16px}
+  .add-quest-panel .input-group{display:flex;flex-direction:column;gap:4px}
+  .add-quest-panel label{font-size:14px;color:var(--muted)}
+  .add-quest-panel input, .add-quest-panel textarea{
+    appearance:none; border:none; background:rgba(0,0,0,.1);
+    color:var(--ink); font:inherit; padding:8px;
+    border-radius:4px; box-shadow:0 0 0 1px var(--border) inset;
+  }
+  .add-quest-panel .quest-type{display:flex;gap:8px}
+  .add-quest-panel .quest-type input{flex:1}
+  .add-quest-panel .quest-type input[type="radio"]{
+    display:none;
+  }
+  .add-quest-panel .quest-type label{
+    display:block; flex:1; padding:8px 12px;
+    background:rgba(0,0,0,.1); border-radius:4px;
+    text-align:center; cursor:pointer;
+    box-shadow:0 0 0 1px var(--border) inset;
+  }
+  .add-quest-panel .quest-type input[type="radio"]:checked + label{
+    background:var(--accent-2); color:var(--paper-ink);
+  }
+  .add-quest-panel .reward-inputs{
+    display:flex; flex-direction:column; gap:8px;
+  }
+  .add-quest-panel .reward-inputs > div{display:flex;gap:8px;align-items:center}
+  .add-quest-panel .reward-inputs input{flex:1}
+  .add-quest-panel .reward-inputs label{white-space:nowrap}
+
+  #admin-drawer{
+    position:fixed; top:0; left:0; width:100%; height:100%; z-index:100;
+    display:flex; visibility:hidden; opacity:0;
+    transition:opacity .2s ease-in-out, visibility .2s ease-in-out;
+  }
+  #admin-drawer.open{visibility:visible;opacity:1}
+  #admin-drawer .shade{
+    position:absolute; top:0; left:0; width:100%; height:100%;
+    background:rgba(0,0,0,.75);
+  }
+  #admin-drawer .drawer{
+    background:var(--bg2); padding:16px; max-width:400px;
+    margin-left:auto; z-index:1;
+    display:flex; flex-direction:column; gap:16px;
+    transform:translateX(100%); transition:transform .3s ease-in-out;
+    box-shadow:-2px 0 4px rgba(0,0,0,.2);
+    width:calc(100% - 32px);
+  }
+  #admin-drawer.open .drawer{transform:translateX(0)}
+  .drawer .drawer-header{
+    display:flex;align-items:center;gap:8px;
+  }
+  .drawer .drawer-header .title{flex:1;font-size:18px;font-weight:700;margin:0}
+  .drawer .drawer-header .close-btn{
+    width:32px; height:32px; border-radius:50%;
+    background:var(--accent-2); color:var(--paper-ink);
+    display:grid; place-items:center; cursor:pointer;
+  }
+  .drawer .drawer-header .close-btn:hover{filter:brightness(1.1)}
+  .drawer .drawer-header .close-btn:active{transform:scale(.95)}
+  .drawer .drawer-header .close-btn svg{width:20px;height:20px}
 </style>
+</head>
+<body>
 
-<style>
-  /* Hide old floating auth/sync toolbar completely */
-  #syncFloat, #sbShadowHost { display:none !important; }
-</style>
+<header>
+  <nav>
+    <div class="logo">RPG Quest Board</div>
+    <div class="fill"></div>
+    <div id="stats"></div>
+    <button id="adminBtn" class="btn ghost">Admin</button>
+  </nav>
+</header>
 
+<main>
+  <div id="questBoard" class="quest-board"></div>
+</main>
 
-  <!-- Firebase SDK (modular) -->
-  <script type="module" id="fb-sdk-loader">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.1.0/firebase-app.js";
-  import { getAuth, onAuthStateChanged, signOut, signInWithPopup, GoogleAuthProvider } from "https://www.gstatic.com/firebasejs/10.1.0/firebase-auth.js";
-  import {
-  getFirestore, collection, doc, setDoc, updateDoc, getDoc, getDocs, serverTimestamp,
-  runTransaction, onSnapshot, query, orderBy, deleteDoc, writeBatch
-} from "https://www.gstatic.com/firebasejs/10.1.0/firebase-firestore.js";
+<div id="admin-drawer">
+  <div id="shade" class="shade"></div>
+  <div id="drawerPanel" class="drawer" tabindex="-1">
+    <div class="drawer-header">
+      <h2 class="title">Admin Panel</h2>
+      <button id="closeDrawer" class="btn close-btn">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+          <path fill-rule="evenodd" d="M5.47 5.47a.75.75 0 0 1 1.06 0L12 10.94l5.47-5.47a.75.75 0 1 1 1.06 1.06L13.06 12l5.47 5.47a.75.75 0 1 1-1.06 1.06L12 13.06l-5.47 5.47a.75.75 0 0 1-1.06-1.06L10.94 12 5.47 6.53a.75.75 0 0 1 0-1.06Z" clip-rule="evenodd" />
+        </svg>
+      </button>
+    </div>
+    
+    <div id="addQuestPanel" class="add-quest-panel">
+      <h3>Add New Quest</h3>
+      <div class="input-group">
+        <label for="new-title">Title</label>
+        <input type="text" id="new-title" placeholder="A simple task">
+      </div>
+      <div class="input-group">
+        <label for="new-body">Description</label>
+        <textarea id="new-body" placeholder="This is a simple quest."></textarea>
+      </div>
+      <div class="input-group">
+        <label>Reward</label>
+        <div class="reward-inputs">
+          <div><label>Gold</label><input type="number" id="new-gold" value="0"></div>
+          <div><label>Exp</label><input type="number" id="new-exp" value="0"></div>
+        </div>
+      </div>
+      <div class="input-group">
+        <label>Quest Type</label>
+        <div class="quest-type">
+          <input type="radio" id="type-single" name="new-type" value="single" checked><label for="type-single">Single</label>
+          <input type="radio" id="type-repeatable" name="new-type" value="repeatable"><label for="type-repeatable">Repeatable</label>
+        </div>
+      </div>
+      <button id="addQuestBtn" class="btn">Add Quest</button>
+    </div>
 
-  // TODO: あなたの firebaseConfig をここに貼り付けてください
-  const firebaseConfig = {
-    apiKey: "AIzaSyDw8IRU5sjphX0gowwJ2oKeOgtqaxe5hfY",
-    authDomain: "quest-board-d5ed7.firebaseapp.com",
-    projectId: "quest-board-d5ed7",
-    storageBucket: "quest-board-d5ed7.firebasestorage.app",
-    messagingSenderId: "307394427906",
-    appId: "1:307394427906:web:2ff0bc69fcd95291aa7b1b",
-    measurementId: "G-9VHW6CHXV7"
-  };
+    <div class="profile-panel">
+      <h2>Profile</h2>
+      <div id="profileStats" class="profile-stats"></div>
+      <div id="expMeter" class="profile-meter"></div>
+      <button id="initBtn" class="btn reset">Initialize Data</button>
+    </div>
+  </div>
+</div>
 
-  const app  = initializeApp(firebaseConfig);
-  const auth = getAuth(app);
-  const db   = getFirestore(app);
+<script src="https://cdn.jsdelivr.net/npm/nanoid/nanoid.min.js"></script>
+<script>
+  // グローバル変数
+  let quests = [];
+  let profile = {};
+  let pending = {}; // 削除・達成保留中のクエスト管理
+  const LS_Q = "rpg_quests_local";
+  const LS_P = "rpg_profile_local";
 
- Object.assign(window, { collection, doc, setDoc, getDoc, getDocs, runTransaction, onSnapshot, query, orderBy, deleteDoc, writeBatch });
+  // Nanoid
+  const nanoid = window.nanoid;
 
-  window.firebaseAuth = auth;
-  window.firebaseDb   = db;
-  window.firebaseFns  = { doc, collection, getDoc, setDoc, updateDoc, deleteDoc, runTransaction, onSnapshot, query, orderBy, getDocs, writeBatch };
-
-// IIFE 側が初期化完了を待てるよう通知（B方式を使うとき用。Aで並び替えているならなくてもOK）
-window.dispatchEvent(new Event('firebase-ready'));
-
+  // ユーティリティ
   function getLS(key){
     try { return JSON.parse(localStorage.getItem(key) || "null"); } catch { return null; }
   }
   function setLS(key, val){
     try { localStorage.setItem(key, JSON.stringify(val)); } catch {}
   }
-
-  function exportLocalState(){
-    const quests  = (window.quests ?? getLS(window.LS_Q ?? "LS_Q")) || [];
-    const profile = (window.profile ?? getLS(window.LS_P ?? "LS_P")) || {};
-    return { quests, profile };
+  function save(){
+    setLS(LS_Q, quests);
+    setLS(LS_P, profile);
+    render();
   }
-  async function importLocalState(state){
-    if(!state) return;
-    if (state.quests)  { window.quests  = state.quests;  setLS(window.LS_Q ?? "LS_Q", state.quests); }
-    if (state.profile) { window.profile = state.profile; setLS(window.LS_P ?? "LS_P", state.profile); }
-    if (typeof window.render === "function") window.render();
+  function levelFromExp(exp) {
+    const level = Math.floor(0.1 * Math.sqrt(exp)) + 1;
+    const expForNext = Math.pow((level) / 0.1, 2);
+    const expForPrev = Math.pow((level-1) / 0.1, 2);
+    const progress = (exp - expForPrev) / (expForNext - expForPrev);
+    return { level, expForNext, expForPrev, progress };
   }
-
-  function latestDoc(uid){
-    return doc(db, "users", uid, "snapshots", "latest");
-  }
-
-  async function fbPush(){
-    const user = auth.currentUser; if(!user) return false;
-    const payload = { ...exportLocalState(), updatedAt: serverTimestamp(), appVer: "fb-v1" };
-    await setDoc(latestDoc(user.uid), payload, { merge: true });
-    return true;
-  }
-  async function fbPull(){
-    const user = auth.currentUser; if(!user) return false;
-    const snap = await getDoc(latestDoc(user.uid));
-    if (!snap.exists()) return false;
-    const data = snap.data();
-    await importLocalState({ quests: data.quests || [], profile: data.profile || {} });
-    return true;
-  }
-
-  window.fbPush = fbPush;
-  window.fbPull = fbPull;
-
-  const userStatusEl = document.getElementById("userStatus");
-  const loginBtnEl   = document.getElementById("loginBtn");
-  const logoutBtnEl  = document.getElementById("logoutBtn");
-
-  function showLoggedIn(u){
-    if(userStatusEl) userStatusEl.textContent = `ようこそ: ${u.email ?? u.uid}`;
-    if(loginBtnEl) loginBtnEl.style.display = "inline-block";
-    if(logoutBtnEl) logoutBtnEl.style.display = "inline-block";
-    if(loginBtnEl) loginBtnEl.textContent = "同期保存(PUSH)";
-  }
-  function showLoggedOut(){
-    if(userStatusEl) userStatusEl.textContent = "ゲスト";
-    if(loginBtnEl) { loginBtnEl.style.display = "inline-block"; loginBtnEl.textContent = "サインイン"; }
-    if(logoutBtnEl) logoutBtnEl.style.display = "none";
-  }
-
-  onAuthStateChanged(auth, async (user) => {
-    if (user) {
-      showLoggedIn(user);
-      try { await fbPull(); } catch(e){ console.warn("auto pull failed", e); }
-      if (typeof window.save === "function" && !window.__savePatchedForFB__) {
-        const originalSave = window.save;
-        window.save = function(){
-          const r = originalSave.apply(this, arguments);
-          fbPush().catch(()=>{});
-          return r;
-        };
-        window.__savePatchedForFB__ = true;
-      }
-      if (loginBtnEl && !loginBtnEl.__fbBound){
-        loginBtnEl.__fbBound = true;
-        loginBtnEl.addEventListener("click", ()=> fbPush().then(()=>alert("PUSH完了")).catch(e=>alert("PUSH失敗:"+e)));
-      }
-    } else {
-      showLoggedOut();
-      if (loginBtnEl && !loginBtnEl.__guestBound){
-        loginBtnEl.__guestBound = true;
-        loginBtnEl.addEventListener("click", async ()=>{
-          try {
-            await signInWithPopup(auth, new GoogleAuthProvider());
+  function applyUnlocksIfAny(quest, timesCompleted) {
+    if (!quest.unlocks) return;
+    quest.unlocks.forEach(unlock => {
+      if (timesCompleted >= (unlock.threshold || 1)) {
+        if (!profile.appliedUnlocks.some(a => a.questId === quest.id && a.unlockId === unlock.id)) {
+          if (unlock.grant.type === 'stat') {
+            const k = unlock.grant.key;
+            profile.stats[k] = (profile.stats[k] || 0) + (unlock.grant.amount || 0);
           }
-          catch(e){
-            alert("ログイン失敗: " + (e?.message || e));
+          if (unlock.grant.type === 'skill') {
+            if (!profile.skills.some(s => s.key === unlock.grant.key)) {
+              profile.skills.push({ key: unlock.grant.key, title: unlock.grant.title });
+            }
           }
-        });
+          if (unlock.grant.type === 'job') {
+            if (!profile.jobs.some(j => j.key === unlock.grant.key)) {
+              profile.jobs.push({ key: unlock.grant.key, title: unlock.grant.title });
+            }
+          }
+          profile.appliedUnlocks.push({ questId: quest.id, unlockId: unlock.id });
+        }
       }
-    }
-  });
-
-  if (logoutBtnEl) {
-    logoutBtnEl.addEventListener("click", async () => {
-      try { await signOut(auth); alert("ログアウトしました"); }
-      catch (e) { alert("ログアウト失敗: " + (e?.message || e)); }
     });
   }
-</script>
-
-</head>
-<body>
-<header>
-  <div class="wrap">
-    <button id="adminBtn" class="btn" title="運営モード / 編集モード">☰</button>
-    <h1>RPG Quest Board</h1>
-    <div class="space"></div>
-
-    <!-- ここから追加 -->
-    <span id="userStatus" style="margin-right:10px;"></span> <!-- ユーザー名表示用 -->
-    <button id="loginBtn" class="btn" style="display:none;">ログイン</button>
-    <button id="logoutBtn" class="btn" style="display:none;">ログアウト</button>
-    <!-- ここまで追加 -->
-
-    <button id="toggleEdit" class="btn">編集モード: OFF</button>
-    <button id="resetBtn" class="btn">初期化</button>
-  </div>
-</header>
-
-<main class="wrap" style="padding-top:16px">
-  <div style="width:100%">
-    <div class="tabs" id="mainTabs" style="grid-template-columns:repeat(2,1fr)">
-      <div class="tab active" data-v="quests">クエスト</div>
-      <div class="tab" data-v="status">ステータス</div>
-    </div>
-
-    <section id="pageQuests" class="split" style="margin-top:12px">
-      <div class="col">
-        <div class="card hardwood">
-          <h2>冒険者プロフィール</h2>
-          <div class="content col">
-            <div class="row">
-              <span class="badge b-exptext">LV <b id="lv">1</b></span>
-              <span class="muted">EXP <b id="expProg">0</b>/<b id="expNeed">100</b>（次のレベルまで）</span>
-            </div>
-            <div class="progress"><i id="expBar" style="width:0%"></i></div>
-            <div class="row" style="margin-top:6px">
-              <span class="badge b-exptext">💰 <b id="gold">0</b> Gold</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="card hardwood">
-          <h2>職業ポイント振り分け</h2>
-          <div class="content">
-            <div id="jobAlloc"></div>
-            <div class="sp-footer">
-              <button id="sp_apply" class="btn">決定</button>
-              <div>残りポイント：<span id="sp_remain" class="sp-remain">0</span></div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="col">
-        <div class="card hardwood">
-          <h2>クエスト掲示板</h2>
-          <div class="content col">
-            <div class="row" style="flex-wrap:wrap; gap:8px">
-              <div id="filters" class="tabs">
-                <div data-v="ACTIVE" class="tab active">進行中</div>
-                <div data-v="ARCHIVED" class="tab">完了</div>
-                <div data-v="REPEATABLE" class="tab">反復</div>
-                <div data-v="ONEOFF" class="tab">単発</div>
-                <div data-v="ALL" class="tab">全部</div>
-                <div data-v="HARD" class="tab">HARD+</div>
-              </div>
-              <div class="search" style="flex:1">
-                <input id="search" placeholder="検索（タイトル/説明/カテゴリ）">
-              </div>
-            </div>
-            <div class="hint">ヒント：編集モードONでドラッグ＆ドロップ並べ替え、カード右上の鍵でロック。編集は右下、削除はさらに右端。</div>
-            <div id="list" class="list" style="margin-top:8px"></div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <section id="pageStatus" style="display:none;margin-top:12px">
-      <div class="card hardwood">
-        <h2>ステータス</h2>
-        <div class="content">
-          <div class="grid" style="grid-template-columns:repeat(3,1fr)">
-            <div class="pill">体力(HP): <b id="st_hp">10</b></div>
-            <div class="pill">筋力(STR): <b id="st_str">1</b></div>
-            <div class="pill">敏捷(DEX): <b id="st_dex">1</b></div>
-            <div class="pill">知力(INT): <b id="st_int">1</b></div>
-            <div class="pill">活力(VIT): <b id="st_vit">1</b></div>
-          </div>
-          <div class="row" style="margin-top:8px">
-            <span class="badge b-exptext">LV <b id="lv2">1</b></span>
-            <span class="muted">EXP <b id="expProg2">0</b>/<b id="expNeed2">100</b></span>
-          </div>
-          <div class="progress" style="margin-top:4px"><i id="expBar2" style="width:0%"></i></div>
-          <div class="row" style="margin-top:8px">
-            <span class="badge b-exptext">💰 <b id="gold2">0</b> Gold（総所持）</span>
-          </div>
-
-          <div class="subtabs" id="statusTabs" style="margin-top:12px">
-            <div class="subtab active" data-v="overview">概要</div>
-            <div class="subtab" data-v="cleared">クリア済み</div>
-            <div class="subtab" data-v="library">職業/スキル</div>
-          </div>
-
-          <div id="st_overview" style="margin-top:10px" class="muted">クエスト達成で解放される職業やスキル、ステータス上昇はここに反映されます。</div>
-          <div id="st_cleared" style="display:none;margin-top:10px"></div>
-          <div id="st_library" style="display:none;margin-top:10px" class="grid" ></div>
-        </div>
-      </div>
-    </section>
-  </div>
-</main>
-
-<div id="drawer" class="drawer">
-  <div class="panel" id="drawerPanel">
-    <div class="wrap" style="padding:10px 14px;border-bottom:1px solid var(--border);position:sticky;top:0;background:#1c1407;z-index:51">
-      <div style="font-weight:700">運営モード</div>
-      <button id="closeDrawer" class="btn small" style="margin-left:auto">閉じる</button>
-    </div>
-    <div class="grid" style="grid-template-columns:1fr;padding:12px">
-      <div class="card">
-        <h2>クエスト追加 / 編集</h2>
-        <div class="content col">
-          <input id="f_title" placeholder="タイトル（例: 本を30分読む）" autofocus>
-          <textarea id="f_desc" placeholder="説明（任意）"></textarea>
-          <input id="f_cat" placeholder="カテゴリ（任意：健康/学習/制作 など）">
-          <div class="row">
-            <div class="col" style="flex:1">
-              <span class="muted" style="font-size:12px">難易度</span>
-              <select id="f_diff">
-                <option value="EASY">EASY</option>
-                <option value="NORMAL" selected>NORMAL</option>
-                <option value="HARD">HARD</option>
-                <option value="EPIC">EPIC</option>
-              </select>
-            </div>
-            <div class="col" style="width:120px">
-              <span class="muted" style="font-size:12px">EXP</span>
-              <input id="f_exp" type="number" value="50">
-            </div>
-            <div class="col" style="width:120px">
-              <span class="muted" style="font-size:12px">Gold</span>
-              <input id="f_gold" type="number" value="20">
-            </div>
-          </div>
-          <label><input id="f_rep" type="checkbox" checked> 反復クエスト</label>
-
-          <div class="card" style="background:rgba(0,0,0,.12)">
-            <h2>解放ルール（任意）</h2>
-            <div class="content col">
-              <label><input id="u_use" type="checkbox"> このクエストのクリア回数で何かを解放/上昇させる</label>
-              <div class="row">
-                <div class="col" style="width:140px">
-                  <span class="muted" style="font-size:12px">しきい値（回）</span>
-                  <input id="u_threshold" type="number" value="5">
-                </div>
-                <div class="col">
-                  <span class="muted" style="font-size:12px">種類</span>
-                  <select id="u_type">
-                    <option value="stat">ステータス上昇</option>
-                    <option value="skill">スキル解放</option>
-                    <option value="job">職業解放</option>
-                  </select>
-                </div>
-              </div>
-              <div id="u_stat" class="row">
-                <div class="col"><span class="muted" style="font-size:12px">ステータス</span>
-                  <select id="u_statkey">
-                    <option value="hp">体力(HP)</option>
-                    <option value="str">筋力(STR)</option>
-                    <option value="dex">敏捷(DEX)</option>
-                    <option value="int">知力(INT)</option>
-                    <option value="vit">活力(VIT)</option>
-                  </select>
-                </div>
-                <div class="col" style="width:120px"><span class="muted" style="font-size:12px">増加量</span>
-                  <input id="u_statamt" type="number" value="1">
-                </div>
-              </div>
-              <div id="u_skill" class="row" style="display:none">
-                <input id="u_skillkey" placeholder="スキルID（任意）">
-                <input id="u_skilltitle" placeholder="スキル名">
-              </div>
-              <div id="u_job" class="row" style="display:none">
-                <input id="u_jobkey" placeholder="職業ID（任意）">
-                <input id="u_jobtitle" placeholder="職業名">
-              </div>
-            </div>
-          </div>
-
-          <div class="row end" style="gap:8px">
-            <button id="addBtn" class="btn">掲示板に貼る</button>
-            <button id="saveBtn" class="btn" style="display:none">更新を保存</button>
-            <button id="cancelEditBtn" class="btn ghost" style="display:none">編集をキャンセル</button>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-  <div class="shade" id="shade"></div>
-</div>
-
-<script>
-(function(){
-
-    window.appState = window.appState || {}; 
-
-  const LS_Q = 'rpg-quest-todo-v8';
-  const LS_P = 'rpg-quest-profile-v4';
-
-  function uid(){ return Math.random().toString(36).slice(2)+Date.now().toString(36); }
-  const now = Date.now();
-  const SEED = [
-    { id:uid(), order:0, title:'本を30分読む', description:'積読から1冊選んで30分。スマホは別部屋へ。', category:'知識', difficulty:'NORMAL', exp:50, gold:20, repeatable:true, timesCompleted:0, archived:false, createdAt: now, locked:false,
-      unlocks:[ {threshold:5, grant:{type:'skill', key:'quickread', title:'クイックリード'}}, {threshold:10, grant:{type:'job', key:'scholar', title:'学術士'}} ] },
-    { id:uid(), order:1, title:'10分ストレッチ', description:'肩と股関節を中心に。', category:'健康', difficulty:'EASY', exp:30, gold:10, repeatable:true, timesCompleted:0, archived:false, createdAt: now, locked:false,
-      unlocks:[ {threshold:7, grant:{type:'stat', key:'dex', amount:1}}, {threshold:14, grant:{type:'job', key:'trainer', title:'鍛錬家'}} ] },
-    { id:uid(), order:2, title:'作業配信の台本メモを作る', description:'見出しだけでもOK。RPG掲示板風に。', category:'制作', difficulty:'HARD', exp:120, gold:60, repeatable:false, timesCompleted:0, archived:false, createdAt: now, locked:false,
-      unlocks:[ {threshold:1, grant:{type:'skill', key:'focus', title:'集中力'}} ] },
-  ];
-
-  let quests = [];
-  let profile = { 
-    gold:0, exp:0, 
-    stats:{ hp:10, str:1, dex:1, int:1, vit:1 }, 
-    skills:[], jobs:[], appliedUnlocks:[],
-    skillPoints:{ unspent: 2, perJob: {} },
-    lastLevel: 1
-  };
-  try{
-    quests = JSON.parse(localStorage.getItem(LS_Q)) || SEED;
-    const p = JSON.parse(localStorage.getItem(LS_P)); if(p) profile = Object.assign(profile, p);
-    quests.forEach((q,i)=>{ if(typeof q.order!=='number') q.order = i; if(typeof q.locked!=='boolean') q.locked=false; });
-    if(!profile.skillPoints) profile.skillPoints = {unspent:0, perJob:{}};
-    if(typeof profile.lastLevel!=='number') profile.lastLevel = 1;
-  }catch(e){ quests = SEED; }
-
-  const el = id => document.getElementById(id);
-  const E = {
-    adminBtn: el('adminBtn'), drawer: el('drawer'), shade: el('shade'), closeDrawer: el('closeDrawer'), drawerPanel: el('drawerPanel'),
-    resetBtn: el('resetBtn'), toggleEdit: el('toggleEdit'),
-    mainTabs: el('mainTabs'), pageQuests: el('pageQuests'), pageStatus: el('pageStatus'),
-    lv: el('lv'), expProg: el('expProg'), expNeed: el('expNeed'), expBar: el('expBar'), gold: el('gold'),
-    filters: el('filters'), search: el('search'), list: el('list'),
-    st_hp: el('st_hp'), st_str: el('st_str'), st_dex: el('st_dex'), st_int: el('st_int'), st_vit: el('st_vit'),
-    lv2: el('lv2'), expProg2: el('expProg2'), expNeed2: el('expNeed2'), expBar2: el('expBar2'), gold2: el('gold2'),
-    statusTabs: el('statusTabs'), st_overview: el('st_overview'), st_cleared: el('st_cleared'), st_library: el('st_library'),
-    f_title: el('f_title'), f_desc: el('f_desc'), f_cat: el('f_cat'), f_diff: el('f_diff'), f_exp: el('f_exp'), f_gold: el('f_gold'), f_rep: el('f_rep'),
-    u_use: el('u_use'), u_threshold: el('u_threshold'), u_type: el('u_type'), u_stat: el('u_stat'), u_skill: el('u_skill'), u_job: el('u_job'),
-    u_statkey: el('u_statkey'), u_statamt: el('u_statamt'), u_skillkey: el('u_skillkey'), u_skilltitle: el('u_skilltitle'), u_jobkey: el('u_jobkey'), u_jobtitle: el('u_jobtitle'),
-    addBtn: el('addBtn'), saveBtn: el('saveBtn'), cancelEditBtn: el('cancelEditBtn'),
-    jobAlloc: el('jobAlloc'), sp_apply: el('sp_apply'), sp_remain: el('sp_remain')
-  };
-
-  let filter = 'ACTIVE';
-  let editMode = false;
-  let editingId = null;
-  let pending = {}; // jobKey -> add amount
-
-  function levelFromExp(exp){ let lvl=1, need=100, left=exp; while(left>=need){ left-=need; lvl++; need+=50; } return {level:lvl,toNext:need,progress:left}; }
-  // save関数をFirebase対応に置き換え
-  function save(){
-    if (window.firebaseAuth.currentUser && window.firebaseDb) {
-      window.appState.saveUserData(window.firebaseAuth.currentUser.uid); // プロフィールを保存
-      // クエストの保存は個別の追加・更新・削除時に行われるため、ここでは不要
-    } else {
-      localStorage.setItem(LS_Q, JSON.stringify(quests));
-      localStorage.setItem(LS_P, JSON.stringify(profile));
-      console.log("Not logged in. Data saved to localStorage.");
-      window.appState.renderApp(); // 未ログイン時はここでUIを更新
-    }
-  }
-
-  function skillPointsForLevel(L){
-    const band = Math.floor((L-1)/10);
-    const a = 1 + band, b = 2 + band;
-    return (L % 2 === 1) ? a : b;
-  }
-  function grantLevelUpPoints(prevLevel, newLevel){
-    if(newLevel<=prevLevel) return 0;
-    let gained = 0;
-    for(let L=prevLevel+1; L<=newLevel; L++){ gained += skillPointsForLevel(L); }
-    profile.skillPoints.unspent = (profile.skillPoints.unspent||0) + gained;
-    profile.lastLevel = newLevel;
+  function grantLevelUpPoints(beforeLevel, afterLevel){
+    const gained = afterLevel - beforeLevel;
+    if(gained > 0) profile.skillPoints.unspent += gained;
     return gained;
   }
-
-  function applyUnlocksIfAny(q, updatedTimes){
-    if(!q.unlocks || !q.unlocks.length) return;
-    q.unlocks.forEach((rule, idx)=>{
-      const already = profile.appliedUnlocks.some(a=> a.questId===q.id && a.index===idx);
-      if(!already && updatedTimes >= rule.threshold){
-        if(rule.grant.type==='stat'){ const k=rule.grant.key; profile.stats[k]=(profile.stats[k]||0)+(rule.grant.amount||0); }
-        else if(rule.grant.type==='skill'){ if(!profile.skills.some(s=> s.key===rule.grant.key)) profile.skills.push({key:rule.grant.key,title:rule.grant.title}); }
-        else if(rule.grant.type==='job'){ if(!profile.jobs.some(s=> s.key===rule.grant.key)) profile.jobs.push({key:rule.grant.key,title:rule.grant.title}); }
-        profile.appliedUnlocks.push({ questId:q.id, index:idx });
-      }
-    });
-  }
-
-  // Firebaseデータロード関数
-    // Firebaseデータロード関数
-  async function loadUserDataFromFirestore(uid) {
-  const F   = window.firebaseFns || {};
-  const DB  = window.firebaseDb;
-  if (!DB || !F.doc || !uid) return;
-
-  const { doc, collection, getDoc, setDoc, onSnapshot, query, orderBy } = F;
-
-  try {
-    // プロフィールを安全に読み込む（無ければ初期作成）
-    const userRef = doc(DB, 'users', uid);
-    const uSnap   = await getDoc(userRef);
-    if (uSnap.exists()) {
-      const uData = uSnap.data() || {};
-      if (uData.profile) {
-        profile = Object.assign(profile, uData.profile);
-      } else {
-        await setDoc(userRef, { profile }, { merge: true });
-      }
-    } else {
-      await setDoc(userRef, { profile }, { merge: true });
+  function getSkillPoints(){
+    let totalSpent = 0;
+    for(const job in profile.skillPoints.perJob){
+      totalSpent += profile.skillPoints.perJob[job];
     }
-
-    // クエストをリアルタイム購読
-    const q = query(collection(DB, 'users', uid, 'quests'), orderBy('order'));
-    onSnapshot(q, (ss) => {
-      quests = ss.docs.map(d => d.data());
-      window.appState?.renderApp?.();
-    }, (err) => console.error('onSnapshot error:', err));
-  } catch (err) {
-    console.error('loadUserDataFromFirestore error:', err);
-  }
-}
-
-   // Firebaseデータ保存関数
-  async function saveUserDataToFirestore(uid) {
-    if (!window.firebaseDb || !uid) return;
-    console.log(`Saving data for user: ${uid}`);
-
-    // ★★★ 修正箇所 ★★★
-    const userDocRef = doc(collection(window.firebaseDb, 'users'), uid);
-    // ★★★ ここまで修正 ★★★
-
-    try {
-      await setDoc(userDocRef, { profile: profile }, { merge: true }); // merge: true で既存フィールドを上書きせず更新
-      console.log("Profile data saved to Firestore.");
-    } catch (error) {
-      console.error("Error saving user data to Firestore:", error);
-    }
+    return { unspent: profile.skillPoints.unspent, spent: totalSpent };
   }
   
-  // completeQuestById関数をFirebase対応に置き換え
-  async function completeQuestById(id){
-    try {
-      const auth = window.firebaseAuth;
-      const db = window.firebaseDb;
-      const F = window.firebaseFns;
-
-      // 未ログイン時
-      if (!auth?.currentUser) {
-        const q = quests.find(x => x.id === id);
-        if (!q) {
-          console.error("ローカルクエストが存在しません:", id);
-          return;
-        }
-        const before = levelFromExp(profile.exp).level;
-        q.timesCompleted += 1;
-        if (!q.repeatable) q.archived = true;
-        profile.gold += (q.gold || 0);
-        profile.exp += (q.exp || 0);
-        applyUnlocksIfAny(q, q.timesCompleted);
-        const after = levelFromExp(profile.exp).level;
-        const gained = grantLevelUpPoints(before, after);
-        save();
-        if (gained > 0) setTimeout(() => alert('レベルアップ！スキルポイント +' + gained), 0);
-        return;
-      }
-
-      // ログイン時
-      if (!db || !F.runTransaction) {
-        console.error('Firestore functions not ready');
-        return;
-      }
-
-      const uid = auth.currentUser.uid;
-      const questRef = F.doc(db, 'users', uid, 'quests', id);
-      const userRef = F.doc(db, 'users', uid);
-
-      await F.runTransaction(db, async (tx) => {
-        const qSnap = await tx.get(questRef);
-        const uSnap = await tx.get(userRef);
-
-        if (!qSnap.exists()) throw new Error('Quest does not exist');
-        if (!uSnap.exists()) throw new Error('User profile does not exist');
-
-        const qData = qSnap.data();
-        const uData = uSnap.data();
-        let curProfile = uData.profile || {};
-
-        const nextTimes = (qData.timesCompleted || 0) + 1;
-        const nextArchived = qData.repeatable ? !!qData.archived : true;
-
-        tx.update(questRef, { timesCompleted: nextTimes, archived: nextArchived });
-
-        curProfile.gold = (curProfile.gold || 0) + (qData.gold || 0);
-        curProfile.exp = (curProfile.exp || 0) + (qData.exp || 0);
-        
-        // レベルアップ判定と更新
-        const before = levelFromExp(curProfile.exp || 0).level;
-        const after = levelFromExp(curProfile.exp).level;
-        const gained = grantLevelUpPoints(before, after);
-        if (gained > 0) {
-          curProfile.skillPoints = curProfile.skillPoints || { unspent: 0 };
-          curProfile.skillPoints.unspent = (curProfile.skillPoints.unspent || 0) + gained;
-          curProfile.lastLevel = after;
-          setTimeout(() => alert('レベルアップ！スキルポイント +' + gained), 0);
-        }
-
-        tx.set(userRef, { profile: curProfile }, { merge: true });
-
-        // ローカルも同期
-        profile = curProfile;
-        
-      });
-
-      window.appState.loadUserData(); // UIを更新
-      alert("クエスト達成！");
-
-    } catch (err) {
-      console.error('Transaction failed:', err);
-      alert('クエスト達成エラー: ' + err.message);
-    }
-  }
-
-  // removeQuestById関数をFirebase対応に置き換え
-  async function removeQuestById(id){
-    if (!window.firebaseAuth.currentUser || !window.firebaseDb) {
-      quests = quests.filter(q=> q.id!==id); save(); // save()が未ログイン時render()を呼ぶ
-      return;
-    }
-    try {
-      // ★★★ 修正箇所 ★★★
-      // 正しいコード
-      const questDocRef = doc(window.firebaseDb, 'users', window.firebaseAuth.currentUser.uid, 'quests', id);
-      await deleteDoc(questDocRef);
-      // ★★★ ここまで修正 ★★★
-      console.log("Quest removed from Firestore:", id);
-    } catch (error) {
-      console.error("Error removing quest from Firestore:", error);
-    }
-  }
-
-  // addQuest関数をFirebase対応に置き換え
-  async function addQuest(q){
-    if (!window.firebaseAuth.currentUser || !window.firebaseDb) {
-      if(typeof q.order!=='number') q.order = quests.length; quests = [q,...quests]; save(); // save()が未ログイン時render()を呼ぶ
-      return;
-    }
-    try {
-      // ★★★ 修正箇所 ★★★
-      // 正しいコード
-      const questRef = doc(window.firebaseDb, 'users', window.firebaseAuth.currentUser.uid, 'quests', q.id);
-      await setDoc(questRef, q); // Firestoreにクエストを追加/上書き
-      // ★★★ ここまで修正 ★★★
-      console.log("Quest added to Firestore:", q.id);
-    } catch (error) {
-      console.error("Error adding quest to Firestore:", error);
-    }
-  }
-
-  function matchFilter(q){
-    if(filter==='ACTIVE' && (q.archived || (!q.repeatable && q.timesCompleted>0))) return false;
-    if(filter==='ARCHIVED' && !(q.archived || (!q.repeatable && q.timesCompleted>0))) return false;
-    if(filter==='REPEATABLE' && !q.repeatable) return false;
-    if(filter==='ONEOFF' && q.repeatable) return false;
-    if(filter==='HARD' && !(q.difficulty==='HARD'||q.difficulty==='EPIC')) return false;
-    const s = E.search.value.trim().toLowerCase();
-    if(s){ const hay=(q.title+' '+(q.description||'')+' '+(q.category||'')).toLowerCase(); if(!hay.includes(s)) return false; }
-    return true;
-  }
-
-  function badge(html, klass=''){ return '<span class="badge '+klass+'">'+html+'</span>'; }
-
-  function questRow(q){
-    const cat = q.category ? badge(q.category, 'b-tag') : '';
-    const g = badge('💰 '+q.gold+'G','b-indigo');
-    const ex = badge(q.exp+'EXP','b-indigo');
-    const rep = q.repeatable ? badge('反復 ×'+q.timesCompleted,'b-green') : badge('単発 '+((q.archived||q.timesCompleted>0)?'(完了)':'(未)'),'b-slate');
-    const diffMap = {EASY:badge('EASY','b-green'), NORMAL:badge('NORMAL','b-tag'), HARD:badge('HARD','b-amber'), EPIC:badge('EPIC','b-indigo')};
-    const diff = diffMap[q.difficulty] || '';
-    const unlocks = (q.unlocks && q.unlocks.length)? '<div class="unlocks">解放条件: ' + 
-      q.unlocks.map(function(u,i){
-        const d = (u.grant.type==='stat')?('ステータス+'+(u.grant.amount||0)):(u.grant.type==='job'?('職業「'+u.grant.title+'」'):('スキル「'+u.grant.title+'」'));
-        return (i? ' / ':'') + u.threshold + '回で' + d;
-      }).join('')
-    + '</div>' : '';
-
-    const handle = editMode ? '<span class="handle'+(q.locked?' disabled':'')+'" data-id="'+q.id+'" title="'+(q.locked?'ロック中':'ドラッグで並べ替え')+'">☰</span>' : '';
-    const lockBtn = editMode ? '<button class="corner-btn lock '+(q.locked?'active':'')+'" data-act="toggle-lock" data-id="'+q.id+'" title="'+(q.locked?'解除':'ロック')+'">'+(q.locked?'🔒':'🔓')+'</button>' : '';
-    const titleBox = '<span class="box" title="メモ/タグなどに利用可">□</span>';
-
-    // フッター：左=達成報告 → 編集、右端=削除
-    const editBtn = editMode ? '<button class="btn'+(q.locked?' disabled':'')+'" data-act="edit" data-id="'+q.id+'">編集</button>' : '';
-    const delBtn  = editMode ? '<button class="btn danger'+(q.locked?' disabled':'')+'" data-act="del" data-id="'+q.id+'">削除</button>' : '';
-
-    return '<div class="quest '+(q.locked?'locked':'')+'" data-id="'+q.id+'" draggable="'+(editMode && !q.locked)+'">'
-      + lockBtn
-      + '<div class="row" style="justify-content:space-between;gap:8px">'
-      +   '<div class="row" style="gap:8px">'+handle+'<h3>'+q.title+'</h3>'+titleBox+'</div>'
-      + '</div>'
-      + '<div class="row" style="flex-wrap:wrap;gap:6px;margin-bottom:6px">'+diff+' '+cat+' '+g+' '+ex+' '+rep+'</div>'
-      + (q.description? '<div class="desc" style="white-space:pre-wrap">'+q.description+'</div>':'')
-      + unlocks
-      + '<div class="footer-row">'
-      +   '<span class="box"><button class="btn" style="padding:4px 8px" data-act="done" data-id="'+q.id+'">達成報告</button></span>'
-      +   editBtn
-      +   '<span class="spacer"></span>'
-      +   delBtn
-      + '</div>'
-      + '</div>';
-  }
-
-  function renderProfile(){
-    const lvInfo = levelFromExp(profile.exp);
-    grantLevelUpPoints(profile.lastLevel||1, lvInfo.level);
-    E.lv.textContent = lvInfo.level; E.expProg.textContent = lvInfo.progress; E.expNeed.textContent = lvInfo.toNext; E.expBar.style.width = Math.round((lvInfo.progress/lvInfo.toNext)*100)+'%';
-    E.gold.textContent = profile.gold;
-    E.lv2.textContent = lvInfo.level; E.expProg2.textContent = lvInfo.progress; E.expNeed2.textContent = lvInfo.toNext; E.expBar2.style.width = Math.round((lvInfo.progress/lvInfo.toNext)*100)+'%';
-    E.gold2.textContent = profile.gold;
-    E.st_hp.textContent = profile.stats.hp; E.st_str.textContent = profile.stats.str; E.st_dex.textContent = profile.stats.dex; E.st_int.textContent = profile.stats.int; E.st_vit.textContent = profile.stats.vit;
-  }
-
-  function renderBoard(){
-    const arr = quests.slice().filter(matchFilter).sort(function(a,b){ return (a.order||0)-(b.order||0); });
-    if(arr.length===0){ E.list.innerHTML = '<div class="muted" style="text-align:center;padding:24px">条件に合うクエストがありません。</div>'; return; }
-    E.list.innerHTML = arr.map(questRow).join('');
-
-    if(editMode){
-      const cards = Array.from(E.list.querySelectorAll('.quest'));
-      let draggingId = null;
-      cards.forEach(function(card){
-        if(card.classList.contains('locked')) return;
-        card.addEventListener('dragstart', function(){ draggingId = card.getAttribute('data-id'); card.classList.add('dragging'); });
-        card.addEventListener('dragend',   function(){ draggingId = null; card.classList.remove('dragging'); save(); });
-        card.addEventListener('dragover', function(e){
-          e.preventDefault();
-          const over = e.currentTarget; const targetId = over.getAttribute('data-id'); if(!draggingId || targetId===draggingId) return;
-          const a = quests.find(function(x){ return x.id===draggingId; }); const b = quests.find(function(x){ return x.id===targetId; });
-          if(!a||!b || b.locked) return;
-          const tmp = a.order; a.order = b.order; b.order = tmp;
-          renderBoard();
-        });
-      });
-    }
-  }
-
-  function renderStatusSubtabs(){
-    const cleared = quests.filter(q=> q.timesCompleted>0);
-    E.st_cleared.innerHTML = cleared.length ? '<div class="list">'+cleared.map(function(q){ return '<div class="quest"><h3>'+q.title+'</h3><div class="muted">クリア回数: '+q.timesCompleted+'</div></div>'; }).join('')+'</div>' : '<div class="muted">まだクリア済みのクエストはありません。</div>';
-    E.st_library.innerHTML = '<div class="card"><div class="content"><div class="muted">職業</div>'+(profile.jobs && profile.jobs.length? '<ul>'+profile.jobs.map(function(j){ return '<li>'+j.title+'</li>'; }).join('')+'</ul>':'<div class="muted">未解放</div>')+'</div></div>'
-      + '<div class="card"><div class="content"><div class="muted">スキル</div>'+(profile.skills && profile.skills.length? '<ul>'+profile.skills.map(function(s){ return '<li>'+s.title+'</li>'; }).join('')+'</ul>':'<div class="muted">未解放</div>')+'</div></div>';
-  }
-
-  function sumPending(){ return Object.values(pending).reduce((a,b)=>a+(b||0),0); }
-
-  function renderJobAlloc(){
-    const jobs = profile.jobs || [];
-    const unspent = profile.skillPoints?.unspent || 0;
-    E.sp_remain.textContent = (unspent - sumPending());
-    if(!jobs.length){
-      E.jobAlloc.innerHTML = '<div class="muted">職業がまだ解放されていません。</div>';
-      return;
-    }
-    const per = profile.skillPoints.perJob || {};
-    const html = jobs.map(function(j){
-      const cur = per[j.key] || 0;
-      const pend = pending[j.key] || 0;
-      return '<div class="sp-row" data-key="'+j.key+'">'
-        + '<div class="sp-name">'+j.title+'</div>'
-        + '<div class="sp-ctrl">'
-        +   '<button class="arrow dec'+((pend<=0)?' disabled':'')+'">◀</button>'
-        +   '<span class="sp-num pend">'+pend+'</span>'
-        +   '<button class="arrow inc'+((sumPending()>=unspent)?' disabled':'')+'">▶</button>'
-        + '</div>'
-        + '<div class="sp-total">'+(cur+pend)+'</div>'
-        + '</div>';
-    }).join('');
-    E.jobAlloc.innerHTML = html;
-  }
-
-  function applyJobAlloc(){
-    const unspent = profile.skillPoints.unspent || 0;
-    const used = sumPending();
-    if(used<=0) return;
-    if(used>unspent) return;
-    const per = profile.skillPoints.perJob || {};
-    Object.keys(pending).forEach(function(k){
-      const add = pending[k]||0;
-      if(add>0){ per[k] = (per[k]||0)+add; pending[k]=0; }
-    });
-    profile.skillPoints.perJob = per;
-    profile.skillPoints.unspent = unspent - used;
-    save();
-    renderJobAlloc();
-  }
-
+  // UIレンダリング
   function render(){
-    renderProfile(); renderBoard(); renderStatusSubtabs(); renderJobAlloc();
-    Array.from(E.filters.children).forEach(x=> x.classList.toggle('active', x.getAttribute('data-v')===filter));
-    E.toggleEdit.textContent = '編集モード: ' + (editMode? 'ON':'OFF');
+    const questListEl = document.getElementById("questBoard");
+    if (!questListEl) return;
+    questListEl.innerHTML = quests.map(q => {
+      const isArchived = q.archived;
+      const isLocked = q.locked;
+      const goldReward = q.reward?.gold || 0;
+      const expReward = q.reward?.exp || 0;
+      const rewards = [];
+      if (goldReward > 0) rewards.push(`+${goldReward} Gold`);
+      if (expReward > 0) rewards.push(`+${expReward} Exp`);
+
+      return `
+        <div class="quest-card ${isArchived ? 'archived' : ''} ${isLocked ? 'locked' : ''}" data-id="${q.id}">
+          <div class="quest-header">
+            <h3 class="title">${q.title}</h3>
+            <div class="reward">${rewards.join(' ')}</div>
+          </div>
+          <div class="quest-body">${q.body}</div>
+          <div class="quest-footer">
+            <button class="btn" data-action="complete" data-id="${q.id}">Complete</button>
+            <button class="btn ghost" data-action="edit" data-id="${q.id}">Edit</button>
+            <button class="btn ghost" data-action="lock" data-id="${q.id}">Lock</button>
+            <button class="btn ghost" data-action="delete" data-id="${q.id}">Delete</button>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    const statsEl = document.getElementById("profileStats");
+    if (statsEl && profile) {
+      const expData = levelFromExp(profile.exp);
+      const statsHtml = `
+        <div><span class="val">${expData.level}</span><span class="label">Level</span></div>
+        <div><span class="val">${profile.gold || 0}</span><span class="label">Gold</span></div>
+        <div><span class="val">${getSkillPoints().unspent}</span><span class="label">SP</span></div>
+      `;
+      statsEl.innerHTML = statsHtml;
+    }
+
+    const expMeterEl = document.getElementById("expMeter");
+    if (expMeterEl && profile) {
+      const expData = levelFromExp(profile.exp);
+      const expHtml = `
+        <span class="label">EXP</span>
+        <div class="bar">
+          <div style="width:${expData.progress * 100}%"></div>
+        </div>
+        <span class="label exp">${profile.exp || 0} / ${expData.expForNext}</span>
+      `;
+      expMeterEl.innerHTML = expHtml;
+    }
   }
 
-  function openDrawer(prefillId=null){
-    document.getElementById('drawer').classList.add('open');
-    E.f_title.focus();
-    if(prefillId){
-      const q = quests.find(x=> x.id===prefillId); if(!q) return;
-      if(q.locked){ alert('このクエストはロック中です。ロックを解除してから編集してください。'); return; }
-      editingId = q.id;
-      E.addBtn.style.display='none'; E.saveBtn.style.display='inline-block'; E.cancelEditBtn.style.display='inline-block';
-      E.f_title.value = q.title || '';
-      E.f_desc.value = q.description || '';
-      E.f_cat.value = q.category || '';
-      E.f_diff.value = q.difficulty || 'NORMAL';
-      E.f_exp.value = q.exp || 0;
-      E.f_gold.value = q.gold || 0;
-      E.f_rep.checked = !!q.repeatable;
-      if(q.unlocks && q.unlocks.length>0){
-        const u = q.unlocks[0];
-        E.u_use.checked = true;
-        E.u_threshold.value = u.threshold || 1;
-        if(u.grant.type==='stat'){
-          E.u_type.value='stat';
-          E.u_stat.style.display='flex'; E.u_skill.style.display='none'; E.u_job.style.display='none';
-          E.u_statkey.value = u.grant.key || 'hp';
-          E.u_statamt.value = u.grant.amount || 1;
-        } else if(u.grant.type==='skill'){
-          E.u_type.value='skill';
-          E.u_stat.style.display='none'; E.u_skill.style.display='flex'; E.u_job.style.display='none';
-          E.u_skillkey.value = u.grant.key || '';
-          E.u_skilltitle.value = u.grant.title || '';
-        } else {
-          E.u_type.value='job';
-          E.u_stat.style.display='none'; E.u_skill.style.display='none'; E.u_job.style.display='flex';
-          E.u_jobkey.value = u.grant.key || '';
-          E.u_jobtitle.value = u.grant.title || '';
+  // クエスト操作
+  function addQuest(q){
+    const qData = Object.assign({}, q, {
+      id: nanoid(),
+      createdAt: Date.now(),
+      locked: false,
+      archived: false,
+      timesCompleted: 0
+    });
+    quests.push(qData);
+    save();
+    alert("クエストを追加しました");
+  }
+
+  function completeQuestById(id){
+    const q = quests.find(x => x.id === id);
+    if (!q) {
+      console.error("Quest not found locally:", id);
+      return;
+    }
+    const before = levelFromExp(profile.exp).level;
+    q.timesCompleted += 1;
+    if (!q.repeatable) q.archived = true;
+    profile.gold += (q.reward?.gold || 0);
+    profile.exp  += (q.reward?.exp || 0);
+    applyUnlocksIfAny(q, q.timesCompleted);
+    const after  = levelFromExp(profile.exp).level;
+    const gained = grantLevelUpPoints(before, after);
+    save();
+    if (gained > 0) setTimeout(() => alert('レベルアップ！スキルポイント +' + gained), 0);
+  }
+
+  function removeQuestById(id){
+    quests = quests.filter(q => q.id !== id);
+    save();
+  }
+
+  function toggleQuestLock(id){
+    const q = quests.find(x => x.id === id);
+    if (q) q.locked = !q.locked;
+    save();
+  }
+  
+  // 初期化・データ管理
+  function initializeData(){
+    const SEED = [
+      { id:"seed-1", title:"看板を見る", body:"掲示板のクエストを確認する。", reward:{gold:50, exp:10}, repeatable:false, unlocks:[] },
+      { id:"seed-2", title:"村人から話を聞く", body:"村の中心にいる人々と交流する。", reward:{gold:20, exp:25}, repeatable:true, unlocks:[] },
+      { id:"seed-3", title:"鍛冶屋へ行く", body:"武器や防具が売られている。", reward:{gold:30, exp:30}, repeatable:true, unlocks:[] },
+    ];
+    quests = SEED.map((q,i)=> Object.assign({}, q, {order:i, createdAt: Date.now(), locked:false}));
+    profile = { gold:0, exp:0, stats:{ hp:10, str:1, dex:1, int:1, vit:1 }, skills:[], jobs:[], appliedUnlocks:[], skillPoints:{unspent:2, perJob:{}}, lastLevel:1 };
+    save();
+    alert('ローカルデータが初期化されました。');
+  }
+
+  function loadLocalData(){
+    const savedQuests = getLS(LS_Q);
+    const savedProfile = getLS(LS_P);
+    if (savedQuests && savedProfile) {
+      quests = savedQuests;
+      profile = savedProfile;
+      console.log("ローカルデータを読み込みました。");
+    } else {
+      initializeData();
+    }
+    render();
+  }
+
+  // イベントリスナー
+  document.addEventListener('DOMContentLoaded', () => {
+    loadLocalData();
+
+    document.getElementById('questBoard').addEventListener('click', (e) => {
+      const target = e.target.closest('[data-action]');
+      if (!target) return;
+      const id = target.dataset.id;
+      const action = target.dataset.action;
+      
+      if (action === 'complete') completeQuestById(id);
+      if (action === 'delete') {
+        if (confirm('このクエストを削除しますか？')) removeQuestById(id);
+      }
+      if (action === 'lock') toggleQuestLock(id);
+      if (action === 'edit') {
+        const q = quests.find(x => x.id === id);
+        if (q) {
+          document.getElementById('new-title').value = q.title;
+          document.getElementById('new-body').value = q.body;
+          document.getElementById('new-gold').value = q.reward?.gold || 0;
+          document.getElementById('new-exp').value = q.reward?.exp || 0;
+          document.getElementById('addQuestBtn').textContent = 'Update Quest';
+          document.getElementById('addQuestBtn').dataset.updateId = id;
+          document.getElementById('type-single').checked = !q.repeatable;
+          document.getElementById('type-repeatable').checked = q.repeatable;
+          openDrawer();
+        }
+      }
+    });
+
+    document.getElementById('addQuestBtn').addEventListener('click', () => {
+      const title = document.getElementById('new-title').value;
+      const body = document.getElementById('new-body').value;
+      const gold = parseInt(document.getElementById('new-gold').value) || 0;
+      const exp = parseInt(document.getElementById('new-exp').value) || 0;
+      const repeatable = document.getElementById('type-repeatable').checked;
+      const updateId = document.getElementById('addQuestBtn').dataset.updateId;
+
+      if (!title || !body) {
+        alert('タイトルと説明を入力してください。');
+        return;
+      }
+      
+      const questData = {
+        title,
+        body,
+        reward: { gold, exp },
+        repeatable
+      };
+
+      if (updateId) {
+        const index = quests.findIndex(q => q.id === updateId);
+        if (index > -1) {
+          Object.assign(quests[index], questData, {
+            lastUpdated: Date.now()
+          });
+          save();
+          alert("クエストを更新しました");
+          document.getElementById('addQuestBtn').textContent = 'Add Quest';
+          delete document.getElementById('addQuestBtn').dataset.updateId;
         }
       } else {
-        E.u_use.checked=false;
+        addQuest(questData);
       }
-    } else {
-      editingId = null;
-      E.addBtn.style.display='inline-block'; E.saveBtn.style.display='none'; E.cancelEditBtn.style.display='none';
-      E.f_title.value=''; E.f_desc.value=''; E.f_cat.value=''; E.f_diff.value='NORMAL'; E.f_exp.value='50'; E.f_gold.value='20'; E.f_rep.checked=true;
-      E.u_use.checked=false; E.u_threshold.value='5'; E.u_type.value='stat'; E.u_statkey.value='hp'; E.u_statamt.value='1'; E.u_skillkey.value=''; E.u_skilltitle.value=''; E.u_jobkey.value=''; E.u_jobtitle.value='';
-      E.u_stat.style.display='flex'; E.u_skill.style.display='none'; E.u_job.style.display='none';
-    }
-  }
-  function closeDrawer(){ document.getElementById('drawer').classList.remove('open'); }
-
-  document.addEventListener('click', function(e){
-    const t = e.target;
-    if(!(t instanceof HTMLElement)) return;
-
-    const act = t.getAttribute('data-act') || (t.parentElement && t.parentElement.getAttribute('data-act'));
-    const id  = t.getAttribute('data-id')  || (t.parentElement && t.parentElement.getAttribute('data-id'));
-    if(act && id){
-      if(act==='done'){ completeQuestById(id); }
-      if(act==='del'){
-        const q = quests.find(x=> x.id===id); if(!q) return;
-        if(q.locked){ alert('ロック中のため削除できません。'); return; }
-        if(confirm('本当に削除しますか？')) removeQuestById(id);
-      }
-      if(act==='edit'){ openDrawer(id); }
-      if(act==='toggle-lock'){
-        const q = quests.find(x=> x.id===id); if(!q) return;
-        q.locked = !q.locked; save(); render();
-      }
-    }
-
-    if(t.id==='adminBtn'){ openDrawer(null); }
-    if(t.id==='closeDrawer' || t.id==='shade'){ closeDrawer(); }
-    if(t.id==='toggleEdit'){ editMode = !editMode; render(); }
+    });
+    
+    document.getElementById('initBtn').addEventListener('click', initializeData);
   });
 
-  E.filters.addEventListener('click', e=>{
-    const t = e.target; if(!(t instanceof HTMLElement)) return;
-    const v = t.getAttribute('data-v'); if(!v) return; filter=v; render();
-  });
-  E.search.addEventListener('input', render);
-
-  E.mainTabs.addEventListener('click', e=>{
-    const t = e.target; if(!(t instanceof HTMLElement)) return;
-    const v = t.getAttribute('data-v'); if(!v) return;
-    Array.from(E.mainTabs.children).forEach(x=> x.classList.toggle('active', x.getAttribute('data-v')===v));
-    if(v==='quests'){ E.pageQuests.style.display='grid'; E.pageStatus.style.display='none'; }
-    else{ E.pageQuests.style.display='none'; E.pageStatus.style.display='block'; }
-  });
-
-  E.statusTabs.addEventListener('click', e=>{
-    const t = e.target; if(!(t instanceof HTMLElement)) return;
-    const v = t.getAttribute('data-v'); if(!v) return;
-    Array.from(E.statusTabs.children).forEach(x=> x.classList.toggle('active', x.getAttribute('data-v')===v));
-    E.st_overview.style.display = v==='overview'?'block':'none';
-    E.st_cleared.style.display  = v==='cleared'?'block':'none';
-    E.st_library.style.display  = v==='library'?'grid':'none';
-  });
-
-  document.getElementById('u_type').addEventListener('change', ()=>{
-    const t = document.getElementById('u_type').value;
-    document.getElementById('u_stat').style.display = t==='stat'?'flex':'none';
-    document.getElementById('u_skill').style.display = t==='skill'?'flex':'none';
-    document.getElementById('u_job').style.display = t==='job'?'flex':'none';
-  });
-
-  E.addBtn.addEventListener('click', ()=>{
-    const title = E.f_title.value.trim(); if(!title) return;
-    const q = {
-      id: uid(),
-      order: quests.length? Math.max(...quests.map(x=> x.order||0))+1 : 0,
-      title,
-      description: E.f_desc.value.trim() || undefined,
-      category: E.f_cat.value.trim() || undefined,
-      difficulty: E.f_diff.value,
-      exp: Math.max(1, Math.round(Number(E.f_exp.value)||0)),
-      gold: Math.max(0, Math.round(Number(E.f_gold.value)||0)),
-      repeatable: !!E.f_rep.checked,
-      timesCompleted: 0, archived:false, createdAt: Date.now(), locked:false,
-    };
-    if(E.u_use.checked){
-      const threshold = Math.max(1, Math.round(Number(E.u_threshold.value)||1));
-      const t = E.u_type.value;
-      if(t==='stat'){
-        q.unlocks = [{ threshold, grant: { type:'stat', key:E.u_statkey.value, amount: Math.max(1, Math.round(Number(E.u_statamt.value)||1)) } }];
-      }else if(t==='skill'){
-        q.unlocks = [{ threshold, grant: { type:'skill', key:E.u_skillkey.value||uid(), title:E.u_skilltitle.value||'新スキル' } }];
-      }else{
-        q.unlocks = [{ threshold, grant: { type:'job', key:E.u_jobkey.value||uid(), title:E.u_jobtitle.value||'新職業' } }];
-      }
-    }
-    addQuest(q);
-    E.f_title.value=''; E.f_desc.value=''; E.f_cat.value=''; E.f_diff.value='NORMAL'; E.f_exp.value='50'; E.f_gold.value='20'; E.f_rep.checked=true;
-    document.getElementById('u_use').checked=false; document.getElementById('u_threshold').value='5'; document.getElementById('u_type').value='stat';
-    document.getElementById('u_statkey').value='hp'; document.getElementById('u_statamt').value='1'; 
-    document.getElementById('u_skillkey').value=''; document.getElementById('u_skilltitle').value=''; 
-    document.getElementById('u_jobkey').value=''; document.getElementById('u_jobtitle').value='';
-    E.f_title.focus();
-  });
-
-  E.saveBtn.addEventListener('click', ()=>{
-    if(!editingId) return;
-    const q = quests.find(x=> x.id===editingId); if(!q) return;
-    q.title = E.f_title.value.trim() || q.title;
-    q.description = E.f_desc.value.trim() || undefined;
-    q.category = E.f_cat.value.trim() || undefined;
-    q.difficulty = E.f_diff.value;
-    q.exp = Math.max(1, Math.round(Number(E.f_exp.value)||0));
-    q.gold = Math.max(0, Math.round(Number(E.f_gold.value)||0));
-    q.repeatable = !!E.f_rep.checked;
-
-    if(document.getElementById('u_use').checked){
-      const threshold = Math.max(1, Math.round(Number(document.getElementById('u_threshold').value)||1));
-      const t = document.getElementById('u_type').value;
-      if(t==='stat'){
-        q.unlocks = [{ threshold, grant: { type:'stat', key:document.getElementById('u_statkey').value, amount: Math.max(1, Math.round(Number(document.getElementById('u_statamt').value)||1)) } }];
-      }else if(t==='skill'){
-        q.unlocks = [{ threshold, grant: { type:'skill', key:document.getElementById('u_skillkey').value||uid(), title:document.getElementById('u_skilltitle').value||'新スキル' } }];
-      }else{
-        q.unlocks = [{ threshold, grant: { type:'job', key:document.getElementById('u_jobkey').value||uid(), title:document.getElementById('u_jobtitle').value||'新職業' } }];
-      }
-    } else {
-      q.unlocks = [];
-    }
-
-    save(); render();
-    closeDrawer();
-  });
-
-  E.cancelEditBtn.addEventListener('click', ()=>{ closeDrawer(); });
-  E.sp_apply.addEventListener('click', applyJobAlloc);
-
-  // E.resetBtn.addEventListenerをFirebase対応に置き換え
-   E.resetBtn.addEventListener('click', async ()=>{
-    if(!confirm('全てのデータを初期化しますか？（ログイン中の場合はFirebaseデータも初期化されます）')) return;
-
-    if (window.firebaseAuth.currentUser && window.firebaseDb) {
-      const uid = window.firebaseAuth.currentUser.uid;
-      try {
-        // プロフィールデータをリセット
-        // ★★★ 修正箇所 ★★★
-        const userDocRef = doc(collection(window.firebaseDb, 'users'), uid);
-        await setDoc(userDocRef, {
-          profile: { gold:0, exp:0, stats:{ hp:10, str:1, dex:1, int:1, vit:1 }, skills:[], jobs:[], appliedUnlocks:[], skillPoints:{unspent:2, perJob:{}}, lastLevel:1 }
-        });
-        // ★★★ ここまで修正 ★★★
-
-        // クエストサブコレクション内の全てのクエストを削除
-        // ★★★ 修正箇所 ★★★
-        // 正しいコード
-        const questsCollectionRef = collection(doc(window.firebaseDb, 'users', window.firebaseAuth.currentUser.uid), 'quests'); // userDocRefからサブコレクション参照を取得
-        const snapshot = await getDocs(questsCollectionRef); // get()ではなくgetDocs()を使用
-        const batch = writeBatch(window.firebaseDb); // writeBatchをトップレベル関数として呼び出し
-        snapshot.docs.forEach(d => { // docは Firestore v9 の QueryDocumentSnapshot を指す
-          batch.delete(d.ref);
-        });
-        await batch.commit();
-        // ★★★ ここまで修正 ★★★
-
-        // SEEDデータでクエストを再作成
-        // ★★★ 修正箇所 ★★★
-        const newQuestsBatch = writeBatch(window.firebaseDb);
-        SEED.forEach(qData => {
-          const newQuestRef = doc(questsCollectionRef, qData.id);
-          newQuestsBatch.set(newQuestRef, qData); // setDoc()と同様に、ここではドキュメント参照を使用
-        });
-        await newQuestsBatch.commit();
-        // ★★★ ここまで修正 ★★★
-
-        alert('Firebaseのデータが初期化されました。');
-      } catch (error) {
-        console.error('Firebaseデータ初期化エラー:', error);
-        alert('Firebaseデータの初期化中にエラーが発生しました。');
-      }
-    } else {
-      const now = Date.now();
-      quests = SEED.map((q,i)=> Object.assign({}, q, {order:i, createdAt: now, locked:false}));
-      profile = { gold:0, exp:0, stats:{ hp:10, str:1, dex:1, int:1, vit:1 }, skills:[], jobs:[], appliedUnlocks:[], skillPoints:{unspent:2, perJob:{}}, lastLevel:1 };
-      pending = {};
-      localStorage.setItem(LS_Q, JSON.stringify(quests));
-      localStorage.setItem(LS_P, JSON.stringify(profile));
-      alert('ローカルデータが初期化されました。');
-      window.appState.renderApp(); // 未ログイン時はここでUIを更新
-    }
-  });
-
-  function openAdmin(){ openDrawer(null); }
-  document.getElementById('adminBtn').addEventListener('click', openAdmin);
+  // 管理パネル
+  const adminDrawerEl = document.getElementById('admin-drawer');
+  function openDrawer(){ adminDrawerEl.classList.add('open'); }
+  function closeDrawer(){ adminDrawerEl.classList.remove('open'); }
+  document.getElementById('adminBtn').addEventListener('click', openDrawer);
   document.getElementById('closeDrawer').addEventListener('click', closeDrawer);
   document.getElementById('shade').addEventListener('click', closeDrawer);
   document.getElementById('drawerPanel').addEventListener('keydown', (e)=> e.stopPropagation(), {capture:true});
   document.getElementById('drawerPanel').addEventListener('pointerdown', (e)=> e.stopPropagation(), {capture:true});
-
-  // メインロジックのレンダリング関数などを window.appState に登録
-  window.appState.renderApp = render;
-  window.appState.loadUserData = loadUserDataFromFirestore;
-  window.appState.saveUserData = saveUserDataToFirestore;
-
-  // 初期ロードは onAuthStateChanged が担当するので、ここでは render() を呼ばない
-  // render(); // この行は削除またはコメントアウト
-})();
 </script>
 </body>
 </html>
