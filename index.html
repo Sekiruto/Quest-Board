@@ -610,7 +610,7 @@
     const q = quests.find(x=> x.id===id); if(!q) return;
 
     // ★★★ 修正箇所: ここから ★★★
-    const userQuestsRef = collection(doc(collection(window.firebaseDb, 'users'), window.firebaseAuth.currentUser.uid), 'quests');
+   const userQuestsRef = collection(doc(window.firebaseDb, 'users', window.firebaseAuth.currentUser.uid), 'quests');
     const questRef = doc(userQuestsRef, id);
     const userDocRef = doc(collection(window.firebaseDb, 'users'), window.firebaseAuth.currentUser.uid);
     // ★★★ ここまで修正 ★★★
