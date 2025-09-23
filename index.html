@@ -109,9 +109,13 @@
   <!-- Firebase SDK (modular) -->
   <script type="module" id="fb-sdk-loader">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-app.js";
-  // ★★★ 修正点 ★★★: getAuth から signInWithEmailAndPassword を削除し、signInWithPopup, GoogleAuthProvider を追加
   import { getAuth, onAuthStateChanged, signOut, signInWithPopup, GoogleAuthProvider } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-auth.js";
-  import { getFirestore, doc, setDoc, getDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore.js";
+  // ★★★ ここから修正 ★★★
+  import { 
+    getFirestore, collection, doc, setDoc, getDoc, serverTimestamp, 
+    runTransaction, onSnapshot, query, orderBy, deleteDoc, writeBatch 
+  } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore.js";
+  // ★★★ ここまで修正 ★★★
 
   // TODO: あなたの firebaseConfig をここに貼り付けてください
   const firebaseConfig = {
@@ -129,7 +133,7 @@
   const db   = getFirestore(app);
 
   window.firebaseAuth = auth;
-  window.firebaseDb   = db;
+  window.firebaseDb   = db; // ここにv9のdbインスタンスが格納されています。
 
   function getLS(key){
     try { return JSON.parse(localStorage.getItem(key) || "null"); } catch { return null; }
@@ -157,11 +161,13 @@
   async function fbPush(){
     const user = auth.currentUser; if(!user) return false;
     const payload = { ...exportLocalState(), updatedAt: serverTimestamp(), appVer: "fb-v1" };
+    // setDocはすでにdoc関数で生成された参照を受け取るので、ここはそのままでOK
     await setDoc(latestDoc(user.uid), payload, { merge: true });
     return true;
   }
   async function fbPull(){
     const user = auth.currentUser; if(!user) return false;
+    // getDocもdoc関数で生成された参照を受け取るので、ここはそのままでOK
     const snap = await getDoc(latestDoc(user.uid));
     if (!snap.exists()) return false;
     const data = snap.data();
@@ -532,14 +538,18 @@
   }
 
   // Firebaseデータロード関数
+    // Firebaseデータロード関数
   async function loadUserDataFromFirestore(uid) {
     if (!window.firebaseDb || !uid) return;
     console.log(`Loading data for user: ${uid}`);
 
-    const userDocRef = window.firebaseDb.collection('users').doc(uid);
+    // ★★★ 修正箇所 ★★★
+    const userDocRef = doc(collection(window.firebaseDb, 'users'), uid);
+    // ★★★ ここまで修正 ★★★
 
     try {
-      const userDoc = await userDocRef.get();
+      // getDocはdoc()で生成された参照を受け取るので、ここはそのままでOK
+      const userDoc = await getDoc(userDocRef);
       if (userDoc.exists) {
         const data = userDoc.data();
         if (data.profile) profile = Object.assign(profile, data.profile);
@@ -549,7 +559,10 @@
       }
 
       // Questsのリアルタイムリスナーを設定
-      window.firebaseDb.collection('users').doc(uid).collection('quests').orderBy('order').onSnapshot(snapshot => {
+      // ★★★ 修正箇所 ★★★
+      const userQuestsCollectionRef = collection(userDocRef, 'quests'); // userDocRefからサブコレクションへの参照を取得
+      onSnapshot(query(userQuestsCollectionRef, orderBy('order')), snapshot => { // query()とorderBy()を使ってクエリを作成し、onSnapshotに渡す
+      // ★★★ ここまで修正 ★★★
         quests = [];
         snapshot.forEach(doc => {
           quests.push(doc.data());
@@ -565,15 +578,17 @@
     }
   }
 
-  // Firebaseデータ保存関数
+   // Firebaseデータ保存関数
   async function saveUserDataToFirestore(uid) {
     if (!window.firebaseDb || !uid) return;
     console.log(`Saving data for user: ${uid}`);
 
-    const userDocRef = window.firebaseDb.collection('users').doc(uid);
+    // ★★★ 修正箇所 ★★★
+    const userDocRef = doc(collection(window.firebaseDb, 'users'), uid);
+    // ★★★ ここまで修正 ★★★
 
     try {
-      await userDocRef.set({ profile: profile }, { merge: true }); // merge: true で既存フィールドを上書きせず更新
+      await setDoc(userDocRef, { profile: profile }, { merge: true }); // merge: true で既存フィールドを上書きせず更新
       console.log("Profile data saved to Firestore.");
     } catch (error) {
       console.error("Error saving user data to Firestore:", error);
@@ -583,7 +598,7 @@
   // completeQuestById関数をFirebase対応に置き換え
   async function completeQuestById(id){
     if (!window.firebaseAuth.currentUser || !window.firebaseDb) {
-      // 未ログイン時の既存ロジック
+      // 未ログイン時の既存ロジック (変更なし)
       const q = quests.find(x=> x.id===id); if(!q) return;
       const before = levelFromExp(profile.exp).level;
       q.timesCompleted += 1;
@@ -599,19 +614,26 @@
     }
 
     const q = quests.find(x=> x.id===id); if(!q) return;
-    const questRef = window.firebaseDb.collection('users').doc(window.firebaseAuth.currentUser.uid).collection('quests').doc(id);
-    const userDocRef = window.firebaseDb.collection('users').doc(window.firebaseAuth.currentUser.uid);
+
+    // ★★★ 修正箇所: ここから ★★★
+    const userQuestsRef = collection(doc(collection(window.firebaseDb, 'users'), window.firebaseAuth.currentUser.uid), 'quests');
+    const questRef = doc(userQuestsRef, id);
+    const userDocRef = doc(collection(window.firebaseDb, 'users'), window.firebaseAuth.currentUser.uid);
+    // ★★★ ここまで修正 ★★★
 
     try {
-      await window.firebaseDb.runTransaction(async (transaction) => {
+      // runTransactionはインポートされているので、ここから先はトランザクション内の修正
+      await runTransaction(window.firebaseDb, async (transaction) => { // runTransactionもトップレベル関数として呼び出す
+        // ★★★ 修正箇所: トランザクション内の参照取得も修正 ★★★
         const questDoc = await transaction.get(questRef);
         if (!questDoc.exists) {
-          throw "Quest does not exist!";
+          throw new Error("Quest does not exist!"); // エラーはErrorオブジェクトとしてスローするのが良い慣習です
         }
         const currentQuest = questDoc.data();
 
         const userProfileDoc = await transaction.get(userDocRef);
-        const currentProfile = userProfileDoc.exists ? userProfileDoc.data().profile : profile;
+        const currentProfile = userProfileDoc.exists ? userProfileDoc.data().profile : profile; // profileの初期値はグローバルのprofileを使用
+        // ★★★ ここまで修正 ★★★
 
         const updatedTimesCompleted = currentQuest.timesCompleted + 1;
         const updatedArchived = !currentQuest.repeatable ? true : currentQuest.archived;
@@ -638,9 +660,12 @@
           });
         }
 
-        const beforeLevel = levelFromExp(currentProfile.exp).level;
-        const afterLevel = levelFromExp(updatedProfile.exp).level;
-        const gainedPoints = grantLevelUpPoints(beforeLevel, afterLevel);
+        // ここでupdatedProfile.expを考慮してレベルアップポイントを計算します。
+        // currentProfile.expからではなく、トランザクションで更新されたprofileのexpから計算すべきです。
+        const beforeLevel = levelFromExp(currentProfile.exp || 0).level; // トランザクション前のexp
+        const afterLevel = levelFromExp(updatedProfile.exp).level; // トランザクションで更新されるexp
+        const gainedPoints = grantLevelUpPoints(beforeLevel, afterLevel); // この関数内でprofile.skillPointsが更新される可能性があるので注意
+
         if (gainedPoints > 0) {
           updatedProfile.skillPoints.unspent = (updatedProfile.skillPoints.unspent || 0) + gainedPoints;
           updatedProfile.lastLevel = afterLevel;
@@ -648,7 +673,7 @@
         }
 
         transaction.set(userDocRef, { profile: updatedProfile }, { merge: true });
-        profile = updatedProfile;
+        profile = updatedProfile; // グローバルなprofileも更新
       });
 
       console.log("Quest and Profile updated via transaction.");
@@ -665,7 +690,10 @@
       return;
     }
     try {
-      await window.firebaseDb.collection('users').doc(window.firebaseAuth.currentUser.uid).collection('quests').doc(id).delete();
+      // ★★★ 修正箇所 ★★★
+      const questDocRef = doc(collection(doc(collection(window.firebaseDb, 'users'), window.firebaseAuth.currentUser.uid), 'quests'), id);
+      await deleteDoc(questDocRef);
+      // ★★★ ここまで修正 ★★★
       console.log("Quest removed from Firestore:", id);
     } catch (error) {
       console.error("Error removing quest from Firestore:", error);
@@ -679,8 +707,10 @@
       return;
     }
     try {
-      const questRef = window.firebaseDb.collection('users').doc(window.firebaseAuth.currentUser.uid).collection('quests').doc(q.id);
-      await questRef.set(q); // Firestoreにクエストを追加/上書き
+      // ★★★ 修正箇所 ★★★
+      const questRef = doc(collection(doc(collection(window.firebaseDb, 'users'), window.firebaseAuth.currentUser.uid), 'quests'), q.id);
+      await setDoc(questRef, q); // Firestoreにクエストを追加/上書き
+      // ★★★ ここまで修正 ★★★
       console.log("Quest added to Firestore:", q.id);
     } catch (error) {
       console.error("Error adding quest to Firestore:", error);
@@ -999,30 +1029,40 @@
   E.sp_apply.addEventListener('click', applyJobAlloc);
 
   // E.resetBtn.addEventListenerをFirebase対応に置き換え
-  E.resetBtn.addEventListener('click', async ()=>{
+   E.resetBtn.addEventListener('click', async ()=>{
     if(!confirm('全てのデータを初期化しますか？（ログイン中の場合はFirebaseデータも初期化されます）')) return;
 
     if (window.firebaseAuth.currentUser && window.firebaseDb) {
       const uid = window.firebaseAuth.currentUser.uid;
       try {
-        await window.firebaseDb.collection('users').doc(uid).set({
+        // プロフィールデータをリセット
+        // ★★★ 修正箇所 ★★★
+        const userDocRef = doc(collection(window.firebaseDb, 'users'), uid);
+        await setDoc(userDocRef, {
           profile: { gold:0, exp:0, stats:{ hp:10, str:1, dex:1, int:1, vit:1 }, skills:[], jobs:[], appliedUnlocks:[], skillPoints:{unspent:2, perJob:{}}, lastLevel:1 }
         });
+        // ★★★ ここまで修正 ★★★
 
-        const questsRef = window.firebaseDb.collection('users').doc(uid).collection('quests');
-        const snapshot = await questsRef.get();
-        const batch = window.firebaseDb.batch();
-        snapshot.docs.forEach(doc => {
-          batch.delete(doc.ref);
+        // クエストサブコレクション内の全てのクエストを削除
+        // ★★★ 修正箇所 ★★★
+        const questsCollectionRef = collection(userDocRef, 'quests'); // userDocRefからサブコレクション参照を取得
+        const snapshot = await getDocs(questsCollectionRef); // get()ではなくgetDocs()を使用
+        const batch = writeBatch(window.firebaseDb); // writeBatchをトップレベル関数として呼び出し
+        snapshot.docs.forEach(d => { // docは Firestore v9 の QueryDocumentSnapshot を指す
+          batch.delete(d.ref);
         });
         await batch.commit();
+        // ★★★ ここまで修正 ★★★
 
-        const newQuestsBatch = window.firebaseDb.batch();
+        // SEEDデータでクエストを再作成
+        // ★★★ 修正箇所 ★★★
+        const newQuestsBatch = writeBatch(window.firebaseDb);
         SEED.forEach(qData => {
-          const newQuestRef = questsRef.doc(qData.id);
+          const newQuestRef = doc(questsCollectionRef, qData.id); // doc関数を使用
           newQuestsBatch.set(qData);
         });
         await newQuestsBatch.commit();
+        // ★★★ ここまで修正 ★★★
 
         alert('Firebaseのデータが初期化されました。');
       } catch (error) {
