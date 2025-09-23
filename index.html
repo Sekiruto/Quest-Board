@@ -590,110 +590,87 @@ window.dispatchEvent(new Event('firebase-ready'));
   }
   
   // completeQuestById関数をFirebase対応に置き換え
-  async function completeQuestById(id) {
-  // 未ログイン：ローカルだけ更新
-  if (!window.firebaseAuth?.currentUser || !window.firebaseDb) {
-    const q = quests.find(x => x.id === id); if (!q) return;
-    const before = levelFromExp(profile.exp).level;
-    q.timesCompleted += 1;
-    if (!q.repeatable) q.archived = true;
-    profile.gold += (q.gold || 0);
-    profile.exp  += (q.exp  || 0);
-    applyUnlocksIfAny(q, q.timesCompleted);
-    const after  = levelFromExp(profile.exp).level;
-    const gained = grantLevelUpPoints(before, after);
-    save();
-    if (gained > 0) setTimeout(() => alert('レベルアップ！スキルポイント +' + gained), 0);
-    return;
-  }
+  async function completeQuestById(id){
+    try {
+      const auth = window.firebaseAuth;
+      const db = window.firebaseDb;
+      const F = window.firebaseFns;
 
-  // ログイン時：Firestore で原子的に更新
-  const F   = window.firebaseFns || {};
-  const DB  = window.firebaseDb;
-  const AUTH= window.firebaseAuth;
-  if (!DB || !F.doc || !F.runTransaction) {
-    console.error('Firestore functions not ready');
-    return;
-  }
-  const { doc, runTransaction } = F;
-
-  try {
-    const uid = AUTH.currentUser.uid;
-    const questRef = doc(DB, 'users', uid, 'quests', id);
-    const userRef  = doc(DB, 'users', uid);
-
-    await runTransaction(DB, async (tx) => {
-      // クエスト
-      const qSnap = await tx.get(questRef);
-      if (!qSnap.exists()) throw new Error('Quest does not exist');
-      const qData = qSnap.data();
-
-      // プロフィール（安全にデフォルト補完）
-      const uSnap = await tx.get(userRef);
-      const uData = uSnap.exists() ? (uSnap.data() || {}) : {};
-      const curProfile = uData.profile || {
-        gold: 0, exp: 0,
-        stats: { hp:10, str:1, dex:1, int:1, vit:1 },
-        skills: [], jobs: [], appliedUnlocks: [],
-        skillPoints: { unspent: 2, perJob: {} },
-        lastLevel: 1
-      };
-
-      // クエスト更新
-      const nextTimes    = (qData.timesCompleted || 0) + 1;
-      const nextArchived = qData.repeatable ? !!qData.archived : true;
-      tx.update(questRef, { timesCompleted: nextTimes, archived: nextArchived });
-
-      // プロフィール加算
-      const upd = { ...curProfile };
-      upd.gold  = (upd.gold || 0) + (qData.gold || 0);
-      upd.exp   = (upd.exp  || 0) + (qData.exp  || 0);
-      upd.stats = upd.stats || { hp:10, str:1, dex:1, int:1, vit:1 };
-      upd.skills = upd.skills || [];
-      upd.jobs   = upd.jobs   || [];
-      upd.appliedUnlocks = upd.appliedUnlocks || [];
-      upd.skillPoints    = upd.skillPoints    || { unspent:0, perJob:{} };
-
-      // アンロック
-      if (Array.isArray(qData.unlocks)) {
-        qData.unlocks.forEach((r, idx) => {
-          const done = upd.appliedUnlocks.some(a => a.questId === qData.id && a.index === idx);
-          if (!done && nextTimes >= (r.threshold || 1)) {
-            if (r.grant?.type === 'stat') {
-              const k = r.grant.key; const amt = r.grant.amount || 0;
-              upd.stats[k] = (upd.stats[k] || 0) + amt;
-            } else if (r.grant?.type === 'skill') {
-              if (!upd.skills.some(s => s.key === r.grant.key)) upd.skills.push({ key:r.grant.key, title:r.grant.title });
-            } else if (r.grant?.type === 'job') {
-              if (!upd.jobs.some(j => j.key === r.grant.key)) upd.jobs.push({ key:r.grant.key, title:r.grant.title });
-            }
-            upd.appliedUnlocks.push({ questId:qData.id, index:idx });
-          }
-        });
+      // 未ログイン時
+      if (!auth?.currentUser) {
+        const q = quests.find(x => x.id === id);
+        if (!q) {
+          console.error("ローカルクエストが存在しません:", id);
+          return;
+        }
+        const before = levelFromExp(profile.exp).level;
+        q.timesCompleted += 1;
+        if (!q.repeatable) q.archived = true;
+        profile.gold += (q.gold || 0);
+        profile.exp += (q.exp || 0);
+        applyUnlocksIfAny(q, q.timesCompleted);
+        const after = levelFromExp(profile.exp).level;
+        const gained = grantLevelUpPoints(before, after);
+        save();
+        if (gained > 0) setTimeout(() => alert('レベルアップ！スキルポイント +' + gained), 0);
+        return;
       }
 
-      // レベル判定
-      const before = levelFromExp(curProfile.exp || 0).level;
-      const after  = levelFromExp(upd.exp).level;
-      const gained = grantLevelUpPoints(before, after);
-      if (gained > 0) {
-        upd.skillPoints.unspent = (upd.skillPoints.unspent || 0) + gained;
-        upd.lastLevel = after;
-        setTimeout(() => alert('レベルアップ！スキルポイント +' + gained), 0);
+      // ログイン時
+      if (!db || !F.runTransaction) {
+        console.error('Firestore functions not ready');
+        return;
       }
 
-      // 保存（merge）
-      tx.set(userRef, { profile: upd }, { merge: true });
+      const uid = auth.currentUser.uid;
+      const questRef = F.doc(db, 'users', uid, 'quests', id);
+      const userRef = F.doc(db, 'users', uid);
 
-      // ローカルも同期
-      profile = upd;
-    });
+      await F.runTransaction(db, async (tx) => {
+        const qSnap = await tx.get(questRef);
+        const uSnap = await tx.get(userRef);
 
-  } catch (err) {
-    console.error('Transaction failed:', err);
-    alert('クエスト達成エラー: ' + err.message);
+        if (!qSnap.exists()) throw new Error('Quest does not exist');
+        if (!uSnap.exists()) throw new Error('User profile does not exist');
+
+        const qData = qSnap.data();
+        const uData = uSnap.data();
+        let curProfile = uData.profile || {};
+
+        const nextTimes = (qData.timesCompleted || 0) + 1;
+        const nextArchived = qData.repeatable ? !!qData.archived : true;
+
+        tx.update(questRef, { timesCompleted: nextTimes, archived: nextArchived });
+
+        curProfile.gold = (curProfile.gold || 0) + (qData.gold || 0);
+        curProfile.exp = (curProfile.exp || 0) + (qData.exp || 0);
+        
+        // レベルアップ判定と更新
+        const before = levelFromExp(curProfile.exp || 0).level;
+        const after = levelFromExp(curProfile.exp).level;
+        const gained = grantLevelUpPoints(before, after);
+        if (gained > 0) {
+          curProfile.skillPoints = curProfile.skillPoints || { unspent: 0 };
+          curProfile.skillPoints.unspent = (curProfile.skillPoints.unspent || 0) + gained;
+          curProfile.lastLevel = after;
+          setTimeout(() => alert('レベルアップ！スキルポイント +' + gained), 0);
+        }
+
+        tx.set(userRef, { profile: curProfile }, { merge: true });
+
+        // ローカルも同期
+        profile = curProfile;
+        
+      });
+
+      window.appState.loadUserData(); // UIを更新
+      alert("クエスト達成！");
+
+    } catch (err) {
+      console.error('Transaction failed:', err);
+      alert('クエスト達成エラー: ' + err.message);
+    }
   }
-}
 
   // removeQuestById関数をFirebase対応に置き換え
   async function removeQuestById(id){
