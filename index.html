@@ -108,12 +108,12 @@
 
   <!-- Firebase SDK (modular) -->
   <script type="module" id="fb-sdk-loader">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.0/firebase-app.js";
-  import { getAuth, onAuthStateChanged, signOut, signInWithPopup, GoogleAuthProvider } from "https://www.gstatic.com/firebasejs/9.6.0/firebase-auth.js";
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.1.0/firebase-app.js";
+  import { getAuth, onAuthStateChanged, signOut, signInWithPopup, GoogleAuthProvider } from "https://www.gstatic.com/firebasejs/10.1.0/firebase-auth.js";
   import {
     getFirestore, collection, doc, setDoc, getDoc, getDocs, serverTimestamp,
     runTransaction, onSnapshot, query, orderBy, deleteDoc, writeBatch
-  } from "https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore.js";
+  } from "https://www.gstatic.com/firebasejs/10.1.0/firebase-firestore.js";
 
   // TODO: あなたの firebaseConfig をここに貼り付けてください
   const firebaseConfig = {
