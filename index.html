@@ -131,7 +131,7 @@
   const db   = getFirestore(app);
 
  Object.assign(window, { collection, doc, setDoc, getDoc, getDocs, runTransaction, onSnapshot, query, orderBy, deleteDoc, writeBatch });
- 
+
   window.firebaseAuth = auth;
   window.firebaseDb   = db;
 
@@ -689,6 +689,9 @@
       // ★★★ 修正箇所 ★★★
       // 正しいコード
       const questDocRef = doc(window.firebaseDb, 'users', window.firebaseAuth.currentUser.uid, 'quests', id);
+      const userSnapshot = await transaction.get(userDocRef);
+        const userData = userSnapshot.data();
+        let profile = userData.profile;
       await deleteDoc(questDocRef);
       // ★★★ ここまで修正 ★★★
       console.log("Quest removed from Firestore:", id);
