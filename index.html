@@ -108,11 +108,12 @@
 
   <!-- Firebase SDK (modular) -->
   <script type="module" id="fb-sdk-loader">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-app.js";
-    import { getAuth, onAuthStateChanged, signOut, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-auth.js";
-    import { getFirestore, doc, setDoc, getDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore.js";
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-app.js";
+  // ★★★ 修正点 ★★★: getAuth から signInWithEmailAndPassword を削除し、signInWithPopup, GoogleAuthProvider を追加
+  import { getAuth, onAuthStateChanged, signOut, signInWithPopup, GoogleAuthProvider } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-auth.js";
+  import { getFirestore, doc, setDoc, getDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore.js";
 
-    // TODO: あなたの firebaseConfig をここに貼り付けてください
+  // TODO: あなたの firebaseConfig をここに貼り付けてください
   const firebaseConfig = {
     apiKey: "AIzaSyDw8IRU5sjphX0gowwJ2oKeOgtqaxe5hfY",
     authDomain: "quest-board-d5ed7.firebaseapp.com",
@@ -123,117 +124,112 @@
     measurementId: "G-9VHW6CHXV7"
   };
 
-    const app  = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db   = getFirestore(app);
+  const app  = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db   = getFirestore(app);
 
-    window.firebaseAuth = auth;
-    window.firebaseDb   = db;
+  window.firebaseAuth = auth;
+  window.firebaseDb   = db;
 
-    function getLS(key){
-      try { return JSON.parse(localStorage.getItem(key) || "null"); } catch { return null; }
-    }
-    function setLS(key, val){
-      try { localStorage.setItem(key, JSON.stringify(val)); } catch {}
-    }
+  function getLS(key){
+    try { return JSON.parse(localStorage.getItem(key) || "null"); } catch { return null; }
+  }
+  function setLS(key, val){
+    try { localStorage.setItem(key, JSON.stringify(val)); } catch {}
+  }
 
-    function exportLocalState(){
-      const quests  = (window.quests ?? getLS(window.LS_Q ?? "LS_Q")) || [];
-      const profile = (window.profile ?? getLS(window.LS_P ?? "LS_P")) || {};
-      return { quests, profile };
-    }
-    async function importLocalState(state){
-      if(!state) return;
-      if (state.quests)  { window.quests  = state.quests;  setLS(window.LS_Q ?? "LS_Q", state.quests); }
-      if (state.profile) { window.profile = state.profile; setLS(window.LS_P ?? "LS_P", state.profile); }
-      if (typeof window.render === "function") window.render();
-    }
+  function exportLocalState(){
+    const quests  = (window.quests ?? getLS(window.LS_Q ?? "LS_Q")) || [];
+    const profile = (window.profile ?? getLS(window.LS_P ?? "LS_P")) || {};
+    return { quests, profile };
+  }
+  async function importLocalState(state){
+    if(!state) return;
+    if (state.quests)  { window.quests  = state.quests;  setLS(window.LS_Q ?? "LS_Q", state.quests); }
+    if (state.profile) { window.profile = state.profile; setLS(window.LS_P ?? "LS_P", state.profile); }
+    if (typeof window.render === "function") window.render();
+  }
 
-    function latestDoc(uid){
-      return doc(db, "users", uid, "snapshots", "latest");
-    }
+  function latestDoc(uid){
+    return doc(db, "users", uid, "snapshots", "latest");
+  }
 
-    async function fbPush(){
-      const user = auth.currentUser; if(!user) return false;
-      const payload = { ...exportLocalState(), updatedAt: serverTimestamp(), appVer: "fb-v1" };
-      await setDoc(latestDoc(user.uid), payload, { merge: true });
-      return true;
-    }
-    async function fbPull(){
-      const user = auth.currentUser; if(!user) return false;
-      const snap = await getDoc(latestDoc(user.uid));
-      if (!snap.exists()) return false;
-      const data = snap.data();
-      await importLocalState({ quests: data.quests || [], profile: data.profile || {} });
-      return true;
-    }
+  async function fbPush(){
+    const user = auth.currentUser; if(!user) return false;
+    const payload = { ...exportLocalState(), updatedAt: serverTimestamp(), appVer: "fb-v1" };
+    await setDoc(latestDoc(user.uid), payload, { merge: true });
+    return true;
+  }
+  async function fbPull(){
+    const user = auth.currentUser; if(!user) return false;
+    const snap = await getDoc(latestDoc(user.uid));
+    if (!snap.exists()) return false;
+    const data = snap.data();
+    await importLocalState({ quests: data.quests || [], profile: data.profile || {} });
+    return true;
+  }
 
-    window.fbPush = fbPush;
-    window.fbPull = fbPull;
+  window.fbPush = fbPush;
+  window.fbPull = fbPull;
 
-    const userStatusEl = document.getElementById("userStatus");
-    const loginBtnEl   = document.getElementById("loginBtn");
-    const logoutBtnEl  = document.getElementById("logoutBtn");
+  const userStatusEl = document.getElementById("userStatus");
+  const loginBtnEl   = document.getElementById("loginBtn");
+  const logoutBtnEl  = document.getElementById("logoutBtn");
 
-    function showLoggedIn(u){
-      if(userStatusEl) userStatusEl.textContent = `ようこそ: ${u.email ?? u.uid}`;
-      if(loginBtnEl) loginBtnEl.style.display = "inline-block";
-      if(logoutBtnEl) logoutBtnEl.style.display = "inline-block";
-      if(loginBtnEl) loginBtnEl.textContent = "同期保存(PUSH)";
-    }
-    function showLoggedOut(){
-      if(userStatusEl) userStatusEl.textContent = "ゲスト";
-      if(loginBtnEl) { loginBtnEl.style.display = "inline-block"; loginBtnEl.textContent = "サインイン"; }
-      if(logoutBtnEl) logoutBtnEl.style.display = "none";
-    }
+  function showLoggedIn(u){
+    if(userStatusEl) userStatusEl.textContent = `ようこそ: ${u.email ?? u.uid}`;
+    if(loginBtnEl) loginBtnEl.style.display = "inline-block";
+    if(logoutBtnEl) logoutBtnEl.style.display = "inline-block";
+    if(loginBtnEl) loginBtnEl.textContent = "同期保存(PUSH)";
+  }
+  function showLoggedOut(){
+    if(userStatusEl) userStatusEl.textContent = "ゲスト";
+    if(loginBtnEl) { loginBtnEl.style.display = "inline-block"; loginBtnEl.textContent = "サインイン"; }
+    if(logoutBtnEl) logoutBtnEl.style.display = "none";
+  }
 
-    onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        showLoggedIn(user);
-        try { await fbPull(); } catch(e){ console.warn("auto pull failed", e); }
-        if (typeof window.save === "function" && !window.__savePatchedForFB__) {
-          const originalSave = window.save;
-          window.save = function(){
-            const r = originalSave.apply(this, arguments);
-            fbPush().catch(()=>{});
-            return r;
-          };
-          window.__savePatchedForFB__ = true;
-        }
-        // loginBtn を PUSH ボタンとして流用
-        if (loginBtnEl && !loginBtnEl.__fbBound){
-          loginBtnEl.__fbBound = true;
-          loginBtnEl.addEventListener("click", ()=> fbPush().then(()=>alert("PUSH完了")).catch(e=>alert("PUSH失敗:"+e)));
-        }
-      } else {
-        showLoggedOut();
-        // (loginBtnEl のイベントリスナー内)
-if (loginBtnEl && !loginBtnEl.__guestBound){
-  loginBtnEl.__guestBound = true;
-  loginBtnEl.addEventListener("click", async ()=>{
-    const email = prompt("メールアドレスを入力してください:");
-    const password = prompt("パスワードを入力してください:");
-    if (email && password) {
-      try {
-        await signInWithEmailAndPassword(auth, email, password);
-        alert("ログインしました！");
-      } catch (error) {
-        alert(`ログインエラー: ${error.message}`);
-        console.error("ログインエラー:", error);
+  onAuthStateChanged(auth, async (user) => {
+    if (user) {
+      showLoggedIn(user);
+      try { await fbPull(); } catch(e){ console.warn("auto pull failed", e); }
+      if (typeof window.save === "function" && !window.__savePatchedForFB__) {
+        const originalSave = window.save;
+        window.save = function(){
+          const r = originalSave.apply(this, arguments);
+          fbPush().catch(()=>{});
+          return r;
+        };
+        window.__savePatchedForFB__ = true;
+      }
+      // loginBtn を PUSH ボタンとして流用
+      if (loginBtnEl && !loginBtnEl.__fbBound){
+        loginBtnEl.__fbBound = true;
+        loginBtnEl.addEventListener("click", ()=> fbPush().then(()=>alert("PUSH完了")).catch(e=>alert("PUSH失敗:"+e)));
+      }
+    } else {
+      showLoggedOut();
+      // ★★★ 修正箇所: ここをGoogle認証に修正 ★★★
+      if (loginBtnEl && !loginBtnEl.__guestBound){
+        loginBtnEl.__guestBound = true;
+        loginBtnEl.addEventListener("click", async ()=>{
+          try {
+            await signInWithPopup(auth, new GoogleAuthProvider()); // Google認証のポップアップを表示
+          }
+          catch(e){
+            alert("ログイン失敗: " + (e?.message || e));
+          }
+        });
       }
     }
   });
-}
-      }
-    });
 
-    if (logoutBtnEl) {
-      logoutBtnEl.addEventListener("click", async () => {
-        try { await signOut(auth); alert("ログアウトしました"); }
-        catch (e) { alert("ログアウト失敗: " + (e?.message || e)); }
-      });
-    }
-  </script>
+  if (logoutBtnEl) {
+    logoutBtnEl.addEventListener("click", async () => {
+      try { await signOut(auth); alert("ログアウトしました"); }
+      catch (e) { alert("ログアウト失敗: " + (e?.message || e)); }
+    });
+  }
+</script>
 
 </head>
 <body>
