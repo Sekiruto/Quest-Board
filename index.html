@@ -134,6 +134,10 @@
 
   window.firebaseAuth = auth;
   window.firebaseDb   = db;
+  window.firebaseFns  = { doc, collection, getDoc, setDoc, updateDoc, deleteDoc, runTransaction, onSnapshot, query, orderBy, getDocs, writeBatch };
+
+// IIFE 側が初期化完了を待てるよう通知（B方式を使うとき用。Aで並び替えているならなくてもOK）
+window.dispatchEvent(new Event('firebase-ready'));
 
   function getLS(key){
     try { return JSON.parse(localStorage.getItem(key) || "null"); } catch { return null; }
@@ -536,32 +540,33 @@
   // Firebaseデータロード関数
     // Firebaseデータロード関数
   async function loadUserDataFromFirestore(uid) {
-  if (!DB || !uid) return;
+  const F   = window.firebaseFns || {};
+  const DB  = window.firebaseDb;
+  if (!DB || !F.doc || !uid) return;
+
+  const { doc, collection, getDoc, setDoc, onSnapshot, query, orderBy } = F;
 
   try {
+    // プロフィールを安全に読み込む（無ければ初期作成）
     const userRef = doc(DB, 'users', uid);
-    const snap = await getDoc(userRef);
-
-    if (snap.exists()) {
-      const data = snap.data() || {};
-      if (data.profile) {
-        profile = Object.assign(profile, data.profile);
+    const uSnap   = await getDoc(userRef);
+    if (uSnap.exists()) {
+      const uData = uSnap.data() || {};
+      if (uData.profile) {
+        profile = Object.assign(profile, uData.profile);
       } else {
-        // プロフィールが未作成なら初期プロフを作成
         await setDoc(userRef, { profile }, { merge: true });
       }
     } else {
-      // ドキュメント自体が無い：初期プロフで作成
       await setDoc(userRef, { profile }, { merge: true });
     }
 
-    // クエスト購読
+    // クエストをリアルタイム購読
     const q = query(collection(DB, 'users', uid, 'quests'), orderBy('order'));
     onSnapshot(q, (ss) => {
       quests = ss.docs.map(d => d.data());
       window.appState?.renderApp?.();
     }, (err) => console.error('onSnapshot error:', err));
-
   } catch (err) {
     console.error('loadUserDataFromFirestore error:', err);
   }
@@ -586,21 +591,31 @@
   
   // completeQuestById関数をFirebase対応に置き換え
   async function completeQuestById(id) {
-  if (!AUTH?.currentUser || !DB) {
-    // 未ログイン時：ローカルのみ
+  // 未ログイン：ローカルだけ更新
+  if (!window.firebaseAuth?.currentUser || !window.firebaseDb) {
     const q = quests.find(x => x.id === id); if (!q) return;
     const before = levelFromExp(profile.exp).level;
     q.timesCompleted += 1;
     if (!q.repeatable) q.archived = true;
-    profile.gold += q.gold;
-    profile.exp  += q.exp;
+    profile.gold += (q.gold || 0);
+    profile.exp  += (q.exp  || 0);
     applyUnlocksIfAny(q, q.timesCompleted);
-    const after   = levelFromExp(profile.exp).level;
-    const gained  = grantLevelUpPoints(before, after);
+    const after  = levelFromExp(profile.exp).level;
+    const gained = grantLevelUpPoints(before, after);
     save();
     if (gained > 0) setTimeout(() => alert('レベルアップ！スキルポイント +' + gained), 0);
     return;
   }
+
+  // ログイン時：Firestore で原子的に更新
+  const F   = window.firebaseFns || {};
+  const DB  = window.firebaseDb;
+  const AUTH= window.firebaseAuth;
+  if (!DB || !F.doc || !F.runTransaction) {
+    console.error('Firestore functions not ready');
+    return;
+  }
+  const { doc, runTransaction } = F;
 
   try {
     const uid = AUTH.currentUser.uid;
@@ -608,12 +623,12 @@
     const userRef  = doc(DB, 'users', uid);
 
     await runTransaction(DB, async (tx) => {
-      // クエスト読み込み
+      // クエスト
       const qSnap = await tx.get(questRef);
       if (!qSnap.exists()) throw new Error('Quest does not exist');
       const qData = qSnap.data();
 
-      // プロフィール読み込み（安全化：data() や profile が無い場合のデフォルトを用意）
+      // プロフィール（安全にデフォルト補完）
       const uSnap = await tx.get(userRef);
       const uData = uSnap.exists() ? (uSnap.data() || {}) : {};
       const curProfile = uData.profile || {
@@ -625,19 +640,19 @@
       };
 
       // クエスト更新
-      const nextTimes = (qData.timesCompleted || 0) + 1;
+      const nextTimes    = (qData.timesCompleted || 0) + 1;
       const nextArchived = qData.repeatable ? !!qData.archived : true;
       tx.update(questRef, { timesCompleted: nextTimes, archived: nextArchived });
 
       // プロフィール加算
       const upd = { ...curProfile };
-      upd.gold = (upd.gold || 0) + (qData.gold || 0);
-      upd.exp  = (upd.exp  || 0) + (qData.exp  || 0);
+      upd.gold  = (upd.gold || 0) + (qData.gold || 0);
+      upd.exp   = (upd.exp  || 0) + (qData.exp  || 0);
       upd.stats = upd.stats || { hp:10, str:1, dex:1, int:1, vit:1 };
       upd.skills = upd.skills || [];
       upd.jobs   = upd.jobs   || [];
       upd.appliedUnlocks = upd.appliedUnlocks || [];
-      upd.skillPoints = upd.skillPoints || { unspent:0, perJob:{} };
+      upd.skillPoints    = upd.skillPoints    || { unspent:0, perJob:{} };
 
       // アンロック
       if (Array.isArray(qData.unlocks)) {
@@ -667,10 +682,10 @@
         setTimeout(() => alert('レベルアップ！スキルポイント +' + gained), 0);
       }
 
-      // プロフィール保存
+      // 保存（merge）
       tx.set(userRef, { profile: upd }, { merge: true });
 
-      // ローカル更新
+      // ローカルも同期
       profile = upd;
     });
 
