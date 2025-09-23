@@ -1042,7 +1042,7 @@
         // クエストサブコレクション内の全てのクエストを削除
         // ★★★ 修正箇所 ★★★
         // 正しいコード
-        const questsCollectionRef = collection(userDocRef, 'quests'); // userDocRefからサブコレクション参照を取得
+        const questsCollectionRef = collection(doc(window.firebaseDb, 'users', window.firebaseAuth.currentUser.uid), 'quests'); // userDocRefからサブコレクション参照を取得
         const snapshot = await getDocs(questsCollectionRef); // get()ではなくgetDocs()を使用
         const batch = writeBatch(window.firebaseDb); // writeBatchをトップレベル関数として呼び出し
         snapshot.docs.forEach(d => { // docは Firestore v9 の QueryDocumentSnapshot を指す
