@@ -591,8 +591,12 @@ window.dispatchEvent(new Event('firebase-ready'));
   
   // completeQuestById関数をFirebase対応に置き換え
   async function completeQuestById(id) {
+  const DB   = window.firebaseDb;
+  const AUTH = window.firebaseAuth;
+  const F    = window.firebaseFns || {};
+
   // 未ログイン：ローカルだけ更新
-  if (!window.firebaseAuth?.currentUser || !window.firebaseDb) {
+  if (!AUTH?.currentUser || !DB) {
     const q = quests.find(x => x.id === id); if (!q) return;
     const before = levelFromExp(profile.exp).level;
     q.timesCompleted += 1;
