@@ -109,7 +109,7 @@
   <!-- Firebase SDK (modular) -->
   <script type="module" id="fb-sdk-loader">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-app.js";
-    import { getAuth, onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-auth.js";
+    import { getAuth, onAuthStateChanged, signOut, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-auth.js";
     import { getFirestore, doc, setDoc, getDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore.js";
 
     // TODO: あなたの firebaseConfig をここに貼り付けてください
@@ -207,14 +207,23 @@
         }
       } else {
         showLoggedOut();
-        // 未ログイン時の login は Google ポップアップ
-        if (loginBtnEl && !loginBtnEl.__guestBound){
-          loginBtnEl.__guestBound = true;
-          loginBtnEl.addEventListener("click", async ()=>{
-            try { await signInWithPopup(auth, new GoogleAuthProvider()); }
-            catch(e){ alert("ログイン失敗: " + (e?.message || e)); }
-          });
-        }
+        // (loginBtnEl のイベントリスナー内)
+if (loginBtnEl && !loginBtnEl.__guestBound){
+  loginBtnEl.__guestBound = true;
+  loginBtnEl.addEventListener("click", async ()=>{
+    const email = prompt("メールアドレスを入力してください:");
+    const password = prompt("パスワードを入力してください:");
+    if (email && password) {
+      try {
+        await signInWithEmailAndPassword(auth, email, password);
+        alert("ログインしました！");
+      } catch (error) {
+        alert(`ログインエラー: ${error.message}`);
+        console.error("ログインエラー:", error);
+      }
+    }
+  });
+}
       }
     });
 
@@ -430,55 +439,6 @@
 
 <script>
 (function(){
-  // ... 既存の LS_Q, LS_P 定義 ...
-  // --- ここから追加 ---
-  let auth, db; // Firebase Auth と Firestore のインスタンスを格納する変数
-  // --- ここまで追加 ---
-
-  // ... 既存の uid, now, SEED, quests, profile 定義 ...
-
-  // --- ここから追加 ---
-  // FirebaseインスタンスとappStateをグローバルスコープから取得
-  setTimeout(() => { // DOMContentLoadedイベントの後、Firebaseの初期化を待つ
-    if (typeof firebase !== 'undefined' && typeof firebase.app !== 'undefined') {
-      const firebaseApp = firebase.app();
-      auth = firebase.auth(); // V9 SDKでは getAuth(firebaseApp) の形
-      db = firebase.firestore(); // V9 SDKでは getFirestore(firebaseApp) の形
-      // V9 SDKのCDNを直接利用しているため、以下のようにアクセスします。
-      auth = window.firebase.auth();
-      db = window.firebase.firestore();
-
-      window.appState.renderApp = render;
-      window.appState.loadUserData = loadUserDataFromFirestore;
-      window.appState.saveUserData = saveUserDataToFirestore;
-
-      // 認証状態の変更で初回のデータロードとレンダーが行われるので、ここでは呼ばない
-      // if (window.appState.currentUser) {
-      //   loadUserDataFromFirestore(window.appState.currentUser.uid);
-      // } else {
-      //   render(); // 未ログイン時はデフォルトデータでUIをレンダリング
-      // }
-    } else {
-      console.error("Firebase is not initialized. Ensure Firebase CDN is loaded before this script.");
-      // Firebaseが利用できない場合でもアプリが動作するように、localStorageからのロードを継続
-      loadFromLocalStorage();
-      render();
-    }
-  }, 0); // 少し遅延させて、Firebaseの初期化を待つ
-
-  function loadFromLocalStorage() { // 既存のlocalStorageロードロジックを関数化
-      try{
-        quests = JSON.parse(localStorage.getItem(LS_Q)) || SEED;
-        const p = JSON.parse(localStorage.getItem(LS_P)); if(p) profile = Object.assign(profile, p);
-        quests.forEach((q,i)=>{ if(typeof q.order!=='number') q.order = i; if(typeof q.locked!=='boolean') q.locked=false; });
-        if(!profile.skillPoints) profile.skillPoints = {unspent:0, perJob:{}};
-        if(typeof profile.lastLevel!=='number') profile.lastLevel = 1;
-      }catch(e){ quests = SEED; }
-  }
-  // --- ここまで追加 ---
-
-  // ... 既存の el 定義 ...
-
   const LS_Q = 'rpg-quest-todo-v8';
   const LS_P = 'rpg-quest-profile-v4';
 
@@ -532,7 +492,18 @@
   let pending = {}; // jobKey -> add amount
 
   function levelFromExp(exp){ let lvl=1, need=100, left=exp; while(left>=need){ left-=need; lvl++; need+=50; } return {level:lvl,toNext:need,progress:left}; }
-  function save(){ localStorage.setItem(LS_Q, JSON.stringify(quests)); localStorage.setItem(LS_P, JSON.stringify(profile)); }
+  // save関数をFirebase対応に置き換え
+  function save(){
+    if (window.appState.currentUser && window.appState.db) {
+      window.appState.saveUserData(window.appState.currentUser.uid); // プロフィールを保存
+      // クエストの保存は個別の追加・更新・削除時に行われるため、ここでは不要
+    } else {
+      localStorage.setItem(LS_Q, JSON.stringify(quests));
+      localStorage.setItem(LS_P, JSON.stringify(profile));
+      console.log("Not logged in. Data saved to localStorage.");
+      window.appState.renderApp(); // 未ログイン時はここでUIを更新
+    }
+  }
 
   function skillPointsForLevel(L){
     const band = Math.floor((L-1)/10);
@@ -561,77 +532,161 @@
     });
   }
 
-  // ... 既存の applyUnlocksIfAny 関数の定義 ...
+  // Firebaseデータロード関数
+  async function loadUserDataFromFirestore(uid) {
+    if (!window.appState.db || !uid) return;
+    console.log(`Loading data for user: ${uid}`);
 
-// ★ここに、以下のloadUserDataFromFirestore関数とsaveUserDataToFirestore関数を追加します★
+    const userDocRef = window.appState.db.collection('users').doc(uid);
 
-async function loadUserDataFromFirestore(uid) {
-  if (!db || !uid) return;
-  console.log(`Loading data for user: ${uid}`);
+    try {
+      const userDoc = await userDocRef.get();
+      if (userDoc.exists) {
+        const data = userDoc.data();
+        if (data.profile) profile = Object.assign(profile, data.profile);
+      } else {
+        console.log("No user profile data in Firestore for this user. Using default or local data.");
+        await window.appState.saveUserData(uid); // 初回保存
+      }
 
-  const userDocRef = db.collection('users').doc(uid);
+      // Questsのリアルタイムリスナーを設定
+      window.appState.db.collection('users').doc(uid).collection('quests').orderBy('order').onSnapshot(snapshot => {
+        quests = [];
+        snapshot.forEach(doc => {
+          quests.push(doc.data());
+        });
+        console.log("Quests loaded from Firestore:", quests);
+        window.appState.renderApp(); // データが更新されたらUIを再描画
+      }, error => {
+        console.error("Error fetching quests:", error);
+      });
 
-  try {
-    const userDoc = await userDocRef.get();
-    if (userDoc.exists) {
-      const data = userDoc.data();
-      if (data.profile) profile = Object.assign(profile, data.profile);
-    } else {
-      console.log("No user profile data in Firestore for this user. Using default or local data.");
-      await saveUserDataToFirestore(uid); // 初回保存
+    } catch (error) {
+      console.error("Error loading user data from Firestore:", error);
+    }
+  }
+
+  // Firebaseデータ保存関数
+  async function saveUserDataToFirestore(uid) {
+    if (!window.appState.db || !uid) return;
+    console.log(`Saving data for user: ${uid}`);
+
+    const userDocRef = window.appState.db.collection('users').doc(uid);
+
+    try {
+      await userDocRef.set({ profile: profile }, { merge: true }); // merge: true で既存フィールドを上書きせず更新
+      console.log("Profile data saved to Firestore.");
+    } catch (error) {
+      console.error("Error saving user data to Firestore:", error);
+    }
+  }
+  
+  // completeQuestById関数をFirebase対応に置き換え
+  async function completeQuestById(id){
+    if (!window.appState.currentUser || !window.appState.db) {
+      // 未ログイン時の既存ロジック
+      const q = quests.find(x=> x.id===id); if(!q) return;
+      const before = levelFromExp(profile.exp).level;
+      q.timesCompleted += 1;
+      if(!q.repeatable) q.archived = true;
+      profile.gold += q.gold;
+      profile.exp += q.exp;
+      applyUnlocksIfAny(q, q.timesCompleted);
+      const after = levelFromExp(profile.exp).level;
+      const gained = grantLevelUpPoints(before, after);
+      save(); // save()が未ログイン時render()を呼ぶ
+      if(gained>0){ setTimeout(()=> alert('レベルアップ！スキルポイント +'+gained+' を獲得しました。'), 0); }
+      return;
     }
 
-    // Questsのリアルタイムリスナーを設定
-    db.collection('users').doc(uid).collection('quests').orderBy('order').onSnapshot(snapshot => {
-      quests = [];
-      snapshot.forEach(doc => {
-        quests.push(doc.data());
-      });
-      console.log("Quests loaded from Firestore:", quests);
-      window.appState.renderApp(); // ★render() の呼び出しを window.appState.renderApp() に修正★
-    }, error => {
-      console.error("Error fetching quests:", error);
-    });
-
-  } catch (error) {
-    console.error("Error loading user data from Firestore:", error);
-  } finally {
-    // render(); // ★この render() は削除します (onAuthStateChanged が初期レンダーを扱うため)★
-  }
-}
-
-async function saveUserDataToFirestore(uid) {
-  if (!db || !uid) return;
-  console.log(`Saving data for user: ${uid}`);
-
-  const userDocRef = db.collection('users').doc(uid);
-
-  try {
-    await userDocRef.set({ profile: profile }, { merge: true });
-    console.log("Profile data saved to Firestore.");
-  } catch (error) {
-    console.error("Error saving user data to Firestore:", error);
-  }
-}
-
-// ... 既存の completeQuestById 関数の定義 ...
-  
-  function completeQuestById(id){
     const q = quests.find(x=> x.id===id); if(!q) return;
-    const before = levelFromExp(profile.exp).level;
-    q.timesCompleted += 1;
-    if(!q.repeatable) q.archived = true;
-    profile.gold += q.gold;
-    profile.exp += q.exp;
-    applyUnlocksIfAny(q, q.timesCompleted);
-    const after = levelFromExp(profile.exp).level;
-    const gained = grantLevelUpPoints(before, after);
-    save(); render();
-    if(gained>0){ setTimeout(()=> alert('レベルアップ！スキルポイント +'+gained+' を獲得しました。'), 0); }
+    const questRef = window.appState.db.collection('users').doc(window.appState.currentUser.uid).collection('quests').doc(id);
+    const userDocRef = window.appState.db.collection('users').doc(window.appState.currentUser.uid);
+
+    try {
+      await window.appState.db.runTransaction(async (transaction) => {
+        const questDoc = await transaction.get(questRef);
+        if (!questDoc.exists) {
+          throw "Quest does not exist!";
+        }
+        const currentQuest = questDoc.data();
+
+        const userProfileDoc = await transaction.get(userDocRef);
+        const currentProfile = userProfileDoc.exists ? userProfileDoc.data().profile : profile;
+
+        const updatedTimesCompleted = currentQuest.timesCompleted + 1;
+        const updatedArchived = !currentQuest.repeatable ? true : currentQuest.archived;
+        transaction.update(questRef, {
+          timesCompleted: updatedTimesCompleted,
+          archived: updatedArchived
+        });
+
+        let updatedProfile = Object.assign({}, currentProfile);
+        updatedProfile.gold = (updatedProfile.gold || 0) + currentQuest.gold;
+        updatedProfile.exp = (updatedProfile.exp || 0) + currentQuest.exp;
+
+        if (currentQuest.unlocks && currentQuest.unlocks.length) {
+          currentQuest.unlocks.forEach((rule, idx) => {
+            const appliedUnlocks = updatedProfile.appliedUnlocks || [];
+            const already = appliedUnlocks.some(a => a.questId === currentQuest.id && a.index === idx);
+            if (!already && updatedTimesCompleted >= rule.threshold) {
+              if (rule.grant.type === 'stat') { updatedProfile.stats[rule.grant.key] = (updatedProfile.stats[rule.grant.key] || 0) + (rule.grant.amount || 0); }
+              else if (rule.grant.type === 'skill') { if (!updatedProfile.skills.some(s => s.key === rule.grant.key)) updatedProfile.skills.push({ key: rule.grant.key, title: rule.grant.title }); }
+              else if (rule.grant.type === 'job') { if (!updatedProfile.jobs.some(s => s.key === rule.grant.key)) updatedProfile.jobs.push({ key: rule.grant.key, title: rule.grant.title }); }
+              appliedUnlocks.push({ questId: currentQuest.id, index: idx });
+              updatedProfile.appliedUnlocks = appliedUnlocks;
+            }
+          });
+        }
+
+        const beforeLevel = levelFromExp(currentProfile.exp).level;
+        const afterLevel = levelFromExp(updatedProfile.exp).level;
+        const gainedPoints = grantLevelUpPoints(beforeLevel, afterLevel);
+        if (gainedPoints > 0) {
+          updatedProfile.skillPoints.unspent = (updatedProfile.skillPoints.unspent || 0) + gainedPoints;
+          updatedProfile.lastLevel = afterLevel;
+          setTimeout(() => alert('レベルアップ！スキルポイント +' + gainedPoints + ' を獲得しました。'), 0);
+        }
+
+        transaction.set(userDocRef, { profile: updatedProfile }, { merge: true });
+        profile = updatedProfile;
+      });
+
+      console.log("Quest and Profile updated via transaction.");
+    } catch (error) {
+      console.error("Transaction failed:", error);
+      alert(`クエスト達成エラー: ${error.message}`);
+    }
   }
 
-  function removeQuestById(id){ quests = quests.filter(q=> q.id!==id); save(); render(); }
-  function addQuest(q){ if(typeof q.order!=='number') q.order = quests.length; quests = [q,...quests]; save(); render(); }
+  // removeQuestById関数をFirebase対応に置き換え
+  async function removeQuestById(id){
+    if (!window.appState.currentUser || !window.appState.db) {
+      quests = quests.filter(q=> q.id!==id); save(); // save()が未ログイン時render()を呼ぶ
+      return;
+    }
+    try {
+      await window.appState.db.collection('users').doc(window.appState.currentUser.uid).collection('quests').doc(id).delete();
+      console.log("Quest removed from Firestore:", id);
+    } catch (error) {
+      console.error("Error removing quest from Firestore:", error);
+    }
+  }
+
+  // addQuest関数をFirebase対応に置き換え
+  async function addQuest(q){
+    if (!window.appState.currentUser || !window.appState.db) {
+      if(typeof q.order!=='number') q.order = quests.length; quests = [q,...quests]; save(); // save()が未ログイン時render()を呼ぶ
+      return;
+    }
+    try {
+      const questRef = window.appState.db.collection('users').doc(window.appState.currentUser.uid).collection('quests').doc(q.id);
+      await questRef.set(q); // Firestoreにクエストを追加/上書き
+      console.log("Quest added to Firestore:", q.id);
+    } catch (error) {
+      console.error("Error adding quest to Firestore:", error);
+    }
+  }
 
   function matchFilter(q){
     if(filter==='ACTIVE' && (q.archived || (!q.repeatable && q.timesCompleted>0))) return false;
@@ -721,7 +776,7 @@ async function saveUserDataToFirestore(uid) {
 
   function renderStatusSubtabs(){
     const cleared = quests.filter(q=> q.timesCompleted>0);
-    E.st_cleared.innerHTML = cleared.length? '<div class="list">'+cleared.map(function(q){ return '<div class="quest"><h3>'+q.title+'</h3><div class="muted">クリア回数: '+q.timesCompleted+'</div></div>'; }).join('')+'</div>' : '<div class="muted">まだクリア済みのクエストはありません。</div>';
+    E.st_cleared.innerHTML = cleared.length? '<div class="list">'+cleared.map(function(q){ return '<div class="quest"><h3>'+q.title+'</h3><div class="muted">クリア回数: '+q.timesCompleted+'</div></div>' : '<div class="muted">まだクリア済みのクエストはありません。</div>';
     E.st_library.innerHTML = '<div class="card"><div class="content"><div class="muted">職業</div>'+(profile.jobs && profile.jobs.length? '<ul>'+profile.jobs.map(function(j){ return '<li>'+j.title+'</li>'; }).join('')+'</ul>':'<div class="muted">未解放</div>')+'</div></div>'
       + '<div class="card"><div class="content"><div class="muted">スキル</div>'+(profile.skills && profile.skills.length? '<ul>'+profile.skills.map(function(s){ return '<li>'+s.title+'</li>'; }).join('')+'</ul>':'<div class="muted">未解放</div>')+'</div></div>';
   }
@@ -944,13 +999,47 @@ async function saveUserDataToFirestore(uid) {
   E.cancelEditBtn.addEventListener('click', ()=>{ closeDrawer(); });
   E.sp_apply.addEventListener('click', applyJobAlloc);
 
-  E.resetBtn.addEventListener('click', ()=>{
-    if(!confirm('データを初期化しますか？')) return;
-    const now = Date.now();
-    quests = SEED.map((q,i)=> Object.assign({}, q, {order:i, createdAt: now, locked:false}));
-    profile = { gold:0, exp:0, stats:{ hp:10, str:1, dex:1, int:1, vit:1 }, skills:[], jobs:[], appliedUnlocks:[], skillPoints:{unspent:2, perJob:{}}, lastLevel:1 };
-    pending = {};
-    save(); render();
+  // E.resetBtn.addEventListenerをFirebase対応に置き換え
+  E.resetBtn.addEventListener('click', async ()=>{
+    if(!confirm('全てのデータを初期化しますか？（ログイン中の場合はFirebaseデータも初期化されます）')) return;
+
+    if (window.appState.currentUser && window.appState.db) {
+      const uid = window.appState.currentUser.uid;
+      try {
+        await window.appState.db.collection('users').doc(uid).set({
+          profile: { gold:0, exp:0, stats:{ hp:10, str:1, dex:1, int:1, vit:1 }, skills:[], jobs:[], appliedUnlocks:[], skillPoints:{unspent:2, perJob:{}}, lastLevel:1 }
+        });
+
+        const questsRef = window.appState.db.collection('users').doc(uid).collection('quests');
+        const snapshot = await questsRef.get();
+        const batch = window.appState.db.batch();
+        snapshot.docs.forEach(doc => {
+          batch.delete(doc.ref);
+        });
+        await batch.commit();
+
+        const newQuestsBatch = window.appState.db.batch();
+        SEED.forEach(qData => {
+          const newQuestRef = questsRef.doc(qData.id);
+          newQuestsBatch.set(qData);
+        });
+        await newQuestsBatch.commit();
+
+        alert('Firebaseのデータが初期化されました。');
+      } catch (error) {
+        console.error('Firebaseデータ初期化エラー:', error);
+        alert('Firebaseデータの初期化中にエラーが発生しました。');
+      }
+    } else {
+      const now = Date.now();
+      quests = SEED.map((q,i)=> Object.assign({}, q, {order:i, createdAt: now, locked:false}));
+      profile = { gold:0, exp:0, stats:{ hp:10, str:1, dex:1, int:1, vit:1 }, skills:[], jobs:[], appliedUnlocks:[], skillPoints:{unspent:2, perJob:{}}, lastLevel:1 };
+      pending = {};
+      localStorage.setItem(LS_Q, JSON.stringify(quests));
+      localStorage.setItem(LS_P, JSON.stringify(profile));
+      alert('ローカルデータが初期化されました。');
+      window.appState.renderApp(); // 未ログイン時はここでUIを更新
+    }
   });
 
   function openAdmin(){ openDrawer(null); }
@@ -960,7 +1049,13 @@ async function saveUserDataToFirestore(uid) {
   document.getElementById('drawerPanel').addEventListener('keydown', (e)=> e.stopPropagation(), {capture:true});
   document.getElementById('drawerPanel').addEventListener('pointerdown', (e)=> e.stopPropagation(), {capture:true});
 
-  render();
+  // メインロジックのレンダリング関数などを window.appState に登録
+  window.appState.renderApp = render;
+  window.appState.loadUserData = loadUserDataFromFirestore;
+  window.appState.saveUserData = saveUserDataToFirestore;
+
+  // 初期ロードは onAuthStateChanged が担当するので、ここでは render() を呼ばない
+  // render(); // この行は削除またはコメントアウト
 })();
 </script>
 
@@ -968,11 +1063,14 @@ async function saveUserDataToFirestore(uid) {
   // Import the functions you need from the SDKs you need
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-app.js";
   import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-analytics.js";
-  // TODO: Add SDKs for Firebase products that you want to use
-  // https://firebase.google.com/docs/web/setup#available-libraries
+  // ★★★ 修正点 ★★★: メール/パスワード認証に必要なものをインポート
+  import { getAuth, onAuthStateChanged, signOut, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-auth.js";
+  import { getFirestore } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore.js";
+
 
   // Your web app's Firebase configuration
-  // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+  // ★★★ 重要 ★★★: ここは必ず、Firebaseコンソールからコピーしたあなたのプロジェクトの正確な firebaseConfig を貼り付けてください。
+  // 例:
   const firebaseConfig = {
     apiKey: "AIzaSyDw8IRU5sjphX0gowwJ2oKeOgtqaxe5hfY",
     authDomain: "quest-board-d5ed7.firebaseapp.com",
@@ -984,85 +1082,79 @@ async function saveUserDataToFirestore(uid) {
   };
 
   // Initialize Firebase
- const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
-const auth = getAuth(app);
-const db = getFirestore(app);
+  const app = initializeApp(firebaseConfig);
+  const analytics = getAnalytics(app);
+  const auth = getAuth(app); // Authenticationインスタンス
+  const db = getFirestore(app); // Firestoreインスタンス
 
-// --- ここから追加 ---
-import { onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-auth.js";
+  // ★★★ 修正点 ★★★: Firebaseインスタンスを window.appState に登録
+  window.appState = window.appState || {}; // 既存の window.appState があればそれを利用
+  window.appState.auth = auth; // authインスタンスを登録
+  window.appState.db = db;     // dbインスタンスを登録
+  window.appState.currentUser = null; // onAuthStateChanged で更新される
 
-// アプリケーションのメインロジックにアクセスするための準備
-// onAuthStateChanged の中でメインロジックの render() などを呼び出せるようにする
-// これは一旦置いておき、後でメインロジックの修正時に使います
-window.appState = {
-  currentUser: null,
-  renderApp: null, // 後でメインロジックの render 関数をここに入れる
-  loadUserData: null, // 後でユーザーデータロード関数をここに入れる
-  saveUserData: null // 後でユーザーデータ保存関数をここに入れる
-};
-
-onAuthStateChanged(auth, (user) => {
-  window.appState.currentUser = user;
+  // ★★★ 修正点 ★★★: DOM要素の取得を onAuthStateChanged の外に移動し、効率化
   const userStatusEl = document.getElementById('userStatus');
   const loginBtnEl = document.getElementById('loginBtn');
   const logoutBtnEl = document.getElementById('logoutBtn');
-  const resetBtnEl = document.getElementById('resetBtn'); // 初期化ボタンの取得
+  const resetBtnEl = document.getElementById('resetBtn');
 
-  if (user) {
-    // ログイン済み
-    userStatusEl.textContent = `ようこそ、${user.email}さん`;
-    loginBtnEl.style.display = 'none';
-    logoutBtnEl.style.display = 'inline-block';
-    resetBtnEl.style.display = 'inline-block'; // ログイン中は初期化ボタンを表示
-    if (window.appState.loadUserData) {
-      window.appState.loadUserData(user.uid); // ユーザー固有のデータをロード
-    }
-  } else {
-    // ログアウト済み
-    userStatusEl.textContent = 'ゲスト';
-    loginBtnEl.style.display = 'inline-block';
-    logoutBtnEl.style.display = 'none';
-    resetBtnEl.style.display = 'none'; // ログアウト中は初期化ボタンを非表示
-    // ログアウト時はローカルストレージのデータをクリアするか、デフォルトに戻すか検討
-    // ここではlocalStorageのデータをクリアする代わりに、空のデータをロードするように促します
-    // もしゲストモードでもデータを見せるなら、Firebaseの匿名認証などを検討
-    quests = []; profile = { gold:0, exp:0, stats:{ hp:10, str:1, dex:1, int:1, vit:1 }, skills:[], jobs:[], appliedUnlocks:[], skillPoints:{unspent:0, perJob:{}}, lastLevel:1 };
-    if (window.appState.renderApp) {
-      window.appState.renderApp(); // UIを更新
-    }
-  }
-  if (window.appState.renderApp) {
-    window.appState.renderApp(); // UIを更新
-  }
-});
 
-// ログイン・ログアウト処理のイベントリスナー（後でHTMLのボタンにアタッチ）
-document.addEventListener('click', async (e) => {
-  if (e.target.id === 'loginBtn') {
-    const email = prompt("メールアドレスを入力してください:");
-    const password = prompt("パスワードを入力してください:");
-    if (email && password) {
-      try {
-        await signInWithEmailAndPassword(auth, email, password);
-        alert("ログインしました！");
-      } catch (error) {
-        alert(`ログインエラー: ${error.message}`);
-        console.error("ログインエラー:", error);
-        // エラーの種類に応じて、サインアップを促すなどの処理を追加可能
-        // 例えば、auth/user-not-found の場合は「アカウントがありません。登録しますか？」と尋ねるなど
+  onAuthStateChanged(auth, (user) => {
+    window.appState.currentUser = user; // window.appState の currentUser を更新
+
+    if (user) {
+      // ログイン済み
+      if (userStatusEl) userStatusEl.textContent = `ようこそ、${user.email}さん`;
+      if (loginBtnEl) loginBtnEl.style.display = 'none';
+      if (logoutBtnEl) logoutBtnEl.style.display = 'inline-block';
+      if (resetBtnEl) resetBtnEl.style.display = 'inline-block'; // ログイン中は初期化ボタンを表示
+      if (window.appState.loadUserData) {
+        window.appState.loadUserData(user.uid); // ユーザー固有のデータをロード
+      }
+    } else {
+      // ログアウト済み
+      if (userStatusEl) userStatusEl.textContent = 'ゲスト';
+      if (loginBtnEl) loginBtnEl.style.display = 'inline-block';
+      if (logoutBtnEl) logoutBtnEl.style.display = 'none';
+      if (resetBtnEl) resetBtnEl.style.display = 'none'; // ログアウト中は初期化ボタンを非表示
+      
+      // メインのスクリプト側で処理されることを想定しているため、ここでは UI 更新のみ
+      if (window.appState.renderApp) {
+        window.appState.renderApp(); // UIを更新
       }
     }
-  } else if (e.target.id === 'logoutBtn') {
-    try {
-      await signOut(auth);
-      alert("ログアウトしました。");
-    } catch (error) {
-      alert(`ログアウトエラー: ${error.message}`);
-      console.error("ログアウトエラー:", error);
+    // ★★★ 修正点 ★★★: onAuthStateChanged の最後の冗長な renderApp() 呼び出しは削除
+    // if (window.appState.renderApp) {
+    //   window.appState.renderApp(); // UIを更新
+    // }
+  });
+
+  // ログイン・ログアウト処理のイベントリスナー
+  document.addEventListener('click', async (e) => {
+    if (e.target.id === 'loginBtn') {
+      // ★★★ 修正点 ★★★: メール/パスワード認証プロンプトに変更
+      const email = prompt("メールアドレスを入力してください:");
+      const password = prompt("パスワードを入力してください:");
+      if (email && password) {
+        try {
+          await signInWithEmailAndPassword(auth, email, password);
+          alert("ログインしました！");
+        } catch (error) {
+          alert(`ログインエラー: ${error.message}`);
+          console.error("ログインエラー:", error);
+        }
+      }
+    } else if (e.target.id === 'logoutBtn') {
+      try {
+        await signOut(auth);
+        alert("ログアウトしました。");
+      } catch (error) {
+        alert(`ログアウトエラー: ${error.message}`);
+        console.error("ログアウトエラー:", error);
+      }
     }
-  }
-});
+  });
 </script>
 
 </body>
