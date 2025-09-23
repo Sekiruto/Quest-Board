@@ -776,7 +776,7 @@ if (loginBtnEl && !loginBtnEl.__guestBound){
 
   function renderStatusSubtabs(){
     const cleared = quests.filter(q=> q.timesCompleted>0);
-    E.st_cleared.innerHTML = cleared.length? '<div class="list">'+cleared.map(function(q){ return '<div class="quest"><h3>'+q.title+'</h3><div class="muted">クリア回数: '+q.timesCompleted+'</div></div>' : '<div class="muted">まだクリア済みのクエストはありません。</div>';
+    E.st_cleared.innerHTML = cleared.length ? '<div class="list">'+cleared.map(function(q){ return '<div class="quest"><h3>'+q.title+'</h3><div class="muted">クリア回数: '+q.timesCompleted+'</div></div>'; }).join('')+'</div>' : '<div class="muted">まだクリア済みのクエストはありません。</div>';
     E.st_library.innerHTML = '<div class="card"><div class="content"><div class="muted">職業</div>'+(profile.jobs && profile.jobs.length? '<ul>'+profile.jobs.map(function(j){ return '<li>'+j.title+'</li>'; }).join('')+'</ul>':'<div class="muted">未解放</div>')+'</div></div>'
       + '<div class="card"><div class="content"><div class="muted">スキル</div>'+(profile.skills && profile.skills.length? '<ul>'+profile.skills.map(function(s){ return '<li>'+s.title+'</li>'; }).join('')+'</ul>':'<div class="muted">未解放</div>')+'</div></div>';
   }
